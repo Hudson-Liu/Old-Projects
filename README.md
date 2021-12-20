@@ -1,7 +1,7 @@
 # Jimmy
 The one and only Jimmy
 
-SPDX-FileCopyrightText: © 2021 Hudson Liu <hudsonliu0@gmail.com>
+SPDX-FileCopyrightText: © 2021 Hudson Liu <<hudsonliu0@gmail.com>>
 
 All rights reserved
 
