@@ -12,17 +12,29 @@ Proprietary and confidential
 """
 
 import numpy as np
-import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+import pygad
 
-epochsPerSubNet = 50 #The number of epochs each SubNet will run
-timesteps = epochsPerSubNet #the LSTM will take exactly as many timesteps as epochs of the SubNet
-inputs = keras.Input(shape = (timesteps, 5))
-LSTMlayer1 = keras.layers.LSTM(1024, return_sequences=True)(inputs)
-LSTMlayer2 = keras.layers.LSTM(1024, return_sequences=True)(LSTMlayer1)
-LSTMlayer3 = keras.layers.LSTM(1024, return_sequences=True)(LSTMlayer2)
-LSTMlayer4 = keras.layers.LSTM(1024)(LSTMlayer3)
-outputs = keras.layers.Dense(5)(LSTMlayer4)
-jimmy = keras.Model(inputs=inputs, outputs=outputs, name="Jimmy")
-jimmy.summary()
+class MainNet:
+    def __init__(epochsPerSubNet):
+        self.timesteps = epochsPerSubNet #the LSTM will take exactly as many timesteps as epochs of the SubNet
+        modelInit()
+    def modelInit():
+        inputs = keras.Input(shape = (timesteps, 5))
+        LSTMlayer1 = keras.layers.LSTM(1024, return_sequences=True)(inputs)
+        LSTMlayer2 = keras.layers.LSTM(1024, return_sequences=True)(LSTMlayer1)
+        LSTMlayer3 = keras.layers.LSTM(1024, return_sequences=True)(LSTMlayer2)
+        outputs = keras.layers.LSTM(1024, return_sequences=True)(LSTMlayer3)
+        jimmy = keras.Model(inputs=inputs, outputs=outputs, name="Jimmy")
+        jimmy.summary()
+    def genAlg(): #generational algorithm
+        
+class SubNet:
+    
+class Fitness:
+    def __init__():
+        
+    def fitness_func():
+    def calculateFitness():
+        
+jimmy = MainNet(50) #the only parameter is how many epochs each SubNet is ran
