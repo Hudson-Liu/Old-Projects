@@ -52,7 +52,9 @@ class CustomModel(keras.Model):
         self.outputs = Dense(classes, activation='softmax') #no. of classes
     
     #essentially the Functional API forward-pass call-structure shenanigans
+    #called each forward propagation (calculating loss, training, etc.)
     def call(self, inputs):
+        print("INPUTS: " + str(inputs))
         x = self.conv_1(inputs)
         x = self.batch_1(x)
         x = self.conv_2(x)
@@ -77,12 +79,15 @@ class CustomModel(keras.Model):
         
         return x #returns the constructed model
     
-    def aug_data_import(self, augmented_data):
+    #pass the augmented data and the full unaugmented labels for indexing
+    def data_import(self, augmented_data, y_true_all):
         self.augmented_data = augmented_data
+        self.y_true_all = np.asarray(y_true_all, dtype=np.int8) #in theory you could get this from the fit function but thats hard and im lazy + that might mess up some other stuff idfk
         
     def comparative_loss(self, y_true, y_pred, y_aug):
         print("Y_TRUE" + str(y_true))
         print("Y_PRED " + str(y_pred))
+        print("Y_AUG" + str(y_aug))
         loss = keras.backend.square(y_pred - y_true)  # (batch_size, 2)
     
                     
@@ -94,21 +99,30 @@ class CustomModel(keras.Model):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
         x, y = data
+        y_true = y #tensorflow uses y as y_true, but thats confusing
+        
+        print("Y TRUE ALL" + str(self.y_true_all))
+        print("Y TRUE INSTANCE" + str(y_true))
+        print("YEEEYEY" + str(y_true.numpy())) #needs to have eager execution enabled for .numpy()to work, supposedly eager execution is slightly slower but there are literally no better available solutions :(
+        #a lower level implementation could potentially make this part significantly more efficient by not having to perform a search each time
+        aug_index = 0
+        y_true_arr = y_true.numpy()
+        for i in range(np.size(self.y_true_all, axis = 0) - 1): 
+            if np.array_equal(self.y_true_all[i], y_true_arr): #y_true is of type tf.data.Dataset
+                aug_index = i 
+        print(aug_index)
+        
         with tf.GradientTape() as tape:
-            y_true = y #tensorflow uses y as y_true, but thats confusing
             y_pred = self(x, training=True)  # Forward pass
-            y_aug = self(self.augmented_data, training=True) #Prediction for augmented data
-            loss = self.comparative_loss(y_true, y_pred, y_aug) # Compute the loss value
+            
+            y_aug = self(self.augmented_data[aug_index], training=True) #Prediction for augmented data
+            loss = self.comparative_loss(y_true, y_pred, y_aug) #Compute the loss value
         
         #I didnt touch any of this code
-        # Compute gradients
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
-        # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-        # Update metrics (includes the metric that tracks the loss)
         self.compiled_metrics.update_state(y, y_pred)
-        # Return a dict mapping metric names to current value
         return {m.name: m.result() for m in self.metrics}
    
 #handles all the other stuff that makes it possible to run the model
@@ -121,18 +135,13 @@ class shrek_is_love:
     #automatically runs
     def create_dataset(self):
         ssl._create_default_https_context = ssl._create_unverified_context
-        (images, labels), (_, _) = keras.datasets.cifar10.load_data()
+        (images, labels), (_, _) = keras.datasets.cifar10.load_data() #only uses the training sets and then splits it again later since that'll be what we'll be dealing with in the happywhale dataset anyways
         self.labels = labels
         self.images = images
         self.data_aug()
         
     #NOT MY CODE this is liam's image data generator (thx liam ur cool)
     #automatically runs
-    #only does augmentation on "images"/training set, will have to modify this to use a concatenated array of "images" and "testing_img" to be able to train the model with a validation set
-    #also have to adjust indexing of finding the corresponding augmented image for the test set
-    #wait actually this shouldn't be an issue since we'll do the train/test split together on the final version
-    #ok actually the best way to fix it is assume "images" is the full dataset, ignore the testing images, then do a train/test split on only the training set
-    #it's just the easiest way, plus we wont run into the same issue on the happywhales thing
     def data_aug(self): 
         imageGen = keras.preprocessing.image.ImageDataGenerator(width_shift_range=.3, height_shift_range=.3, horizontal_flip=True, zoom_range=.3)
         imagees = np.zeros(shape=(1, 32, 32, 3))
@@ -147,7 +156,7 @@ class shrek_is_love:
         
             im = im / 255.0
             self.complements.append(im)
-        
+        self.complements = np.asarray(self.complements, dtype=np.float)
         self.images = self.images.astype(np.float)
         self.preprocessor()
         
@@ -157,11 +166,14 @@ class shrek_is_love:
         self.labels = onehot_encoder.fit_transform(np.reshape(self.labels, (-1, 1)))
         
         from sklearn.model_selection import train_test_split
-        self.images_train, self.images_test, self.labels_train, self.labels_test = train_test_split(self.images, self.labels, test_size=0.25, random_state=42)
+        shared_seed = 5 #the indexes of complements_train and image_train have to line up, so that labels_train can apply to both
+        self.complements_train, self.complements_test = train_test_split(self.complements, test_size=0.25, random_state=shared_seed)
+        self.images_train, self.images_test, self.labels_train, self.labels_test = train_test_split(self.images, self.labels, test_size=0.25, random_state=shared_seed)
         
-    
+#in practice, the below will be all that needs to be given to the model
 shrek_is_life = shrek_is_love()
-model = CustomModel(10)
-model.aug_data_import(shrek_is_life.labels) #what this means is that the model will not be training on aug_data, essentially turning it into a secondary test set
-model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy']) #you can give it anything for loss; it'll ignore it and use the custom one
-model.fit(shrek_is_life.images_train, shrek_is_life.labels_train, epochs = 1, validation_data = (shrek_is_life.images_test, shrek_is_life.labels_test)) 
+model = CustomModel(10) #10 classes
+model.data_import(shrek_is_life.complements_train, shrek_is_life.labels_train) #the model will not be training on aug_data, essentially turning it into a secondary test set
+model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'], run_eagerly=True) #you can give it anything for loss; it'll ignore it and use the custom one
+print(shrek_is_life.images_train.shape)
+model.fit(x = shrek_is_life.images_train, y = shrek_is_life.labels_train, epochs = 1)
