@@ -25,7 +25,7 @@ from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, BatchNormalizatio
 import ssl
 import numpy as np
 import cv2 as cv
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt #Useful for debugging and visualization
 
 class CustomModel(keras.Model):
     def __init__(self, classes):
@@ -80,11 +80,10 @@ class CustomModel(keras.Model):
         
         return x #returns the constructed model
     
-    #pass the augmented data and the full unaugmented labels for indexing
-    #basically imports the data that you're feeding into .fit() separately since i dont feel like dealing with low-level tensorflow shenanigans
+    #Imports necessary data (It's hard to gain access of the values handed to .fit())
     def data_import(self, augmented_data, x_all, batch_size):
         self.augmented_data = augmented_data
-        self.x_all = np.asarray(x_all, dtype=np.float32) #in theory you could get this from the fit function but thats hard and im lazy + that might mess up some other stuff idfk
+        self.x_all = np.asarray(x_all, dtype=np.float32)
         self.batch_size = batch_size
         
     def comparative_loss(self, y_true, y_pred, y_aug):
@@ -99,51 +98,40 @@ class CustomModel(keras.Model):
         return loss
         
     def train_step(self, data):
-        # Unpack the data. Its structure depends on your model and
-        # on what you pass to `fit()`.
         x, y = data #current batch
-        #print("All Images" + str(self.x_all[0:10]))
-        #print("Current batch of images" + str(x))
-        #print("Current batch as array" + str(x.numpy()[0:10])) #needs to have eager execution enabled for .numpy() to work, supposedly eager execution is slightly slower but there are literally no better available solutions :(
-        #a lower level implementation could make this part significantly more efficient by not having to perform a search each time
-        aug_index = 0#image sequences are much more likely to be unique than labels
-        self.x_arr = x.numpy() #turn into numpy array, EAGER EXECUTION MUST BE ENABLED, also made as attribute of class temporarily for easy debuggin, remember ot revert
-        #plt.imshow(self.x_all[0])
-        #plt.imshow(self.x_arr[0]) 
-        #print(range(np.size(self.x_all, axis = 0)))
-        found = False #whether the proper index was located
-        for i in range(np.size(self.x_all, axis = 0)): #range() automatically ends at second arg - 1
-            difference = cv.subtract(self.x_all[i], self.x_arr[0]) #difference between original and current image
-            #print(difference)
-            #if np.array_equal(self.x_all[i], self.x_arr[0]) and np.array_equal(self.x_all[i+self.batch_size], self.x_arr[self.batch_size - 1]):
-            if np.count_nonzero(difference) == 0: #will not work if, in the .fit() line, shuffle is set as "True"
-                #self.twinsies = self.x_all[i+(self.batch_size-1)]
-                #self.twinsiese = self.x_arr[batch_size-1]
-                aug_index = i #lower bound
+        
+        #Finds the range of indexes for the complements of the current batch of images
+        #A lower level implementation could make this significantly more efficient by avoiding searching each time
+        aug_index = 0
+        x_arr = x.numpy() #Turns the input data iterable Tensor into a numpy array, Eager Execution must be enabled for this to work
+        for i in range(np.size(self.x_all, axis = 0)):
+            difference = cv.subtract(self.x_all[i], x_arr[0])
+            if np.count_nonzero(difference) == 0: #In the .fit() line for this CustomModel, shuffle = False for this to work
+                aug_index = i #Lower bound of the batch of images
                 found = True
         if found == False:
-            print("yikes mate the image wasn't found... hold up that doesnt make sense")
-                
-        print("\nOIOI " + str(aug_index))
+            print("Yikes mate the x_arr wasn't found in x_all... probably a rounding error")
+        print("\nCurrent Index: " + str(aug_index))
         
+        #Forward pass/predictions + loss calculation
         with tf.GradientTape() as tape:
-            y_pred = self(x, training=True)  # Forward pass
+            y_pred = self(x, training=True)
+            y_aug = self(self.augmented_data[aug_index:aug_index+self.batch_size], training=True)
             
-            y_aug = self(self.augmented_data[aug_index:aug_index+self.batch_size], training=True) #Prediction for augmented data, no need for - 1 on batch_size since : doesn't include the last number
-            
-            loss = self.comparative_loss(y, y_pred, y_aug) #Compute the loss value
+            loss = self.comparative_loss(y, y_pred, y_aug) #Computes the actual loss value
         
-        #I didnt touch any of this code
+        #I didn't touch any of this code
         trainable_vars = self.trainable_variables
         gradients = tape.gradient(loss, trainable_vars)
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
         self.compiled_metrics.update_state(y, y_pred)
         return {m.name: m.result() for m in self.metrics}
    
-#handles all the other stuff that makes it possible to run the model
-#AKA: Creates the dataset
+#Essentially emulates the environment that the model would normally be running in
+#E.g. Creates the dataset, does Image Augmentation, etc.
+#In the actual implementation, only the "CustomModel" class will be used, this is purely for testing purposes
 class shrek_is_love: 
-    def __init__(self): #these will be actual variables in the actual program
+    def __init__(self):
         self.complements = []
         self.create_dataset()
     
@@ -186,11 +174,10 @@ class shrek_is_love:
         self.complements_train, self.complements_test = train_test_split(self.complements, test_size=0.25, random_state=shared_seed)
         self.images_train, self.images_test, self.labels_train, self.labels_test = train_test_split(self.images, self.labels, test_size=0.25, random_state=shared_seed)
         
-#in practice, the below will be all that needs to be given to the model
+#The following code will be all that is necessary to run the CustomModel classs
 batch_size = 32
 shrek_is_life = shrek_is_love()
 model = CustomModel(10) #10 classes
 model.data_import(shrek_is_life.complements_train, shrek_is_life.images_train, batch_size) #the model will not be training on aug_data, essentially turning it into a secondary test set
 model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'], run_eagerly=True) #you can give it anything for loss; it'll ignore it and use the custom one
-print(shrek_is_life.images_train.shape)
 model.fit(x = shrek_is_life.images_train, y = shrek_is_life.labels_train, shuffle = False, batch_size = batch_size, epochs = 1)
