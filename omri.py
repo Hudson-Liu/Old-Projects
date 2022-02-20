@@ -25,6 +25,7 @@ from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, BatchNormalizatio
 import ssl
 import numpy as np
 import cv2 as cv
+import matplotlib.pyplot as plt
 
 class CustomModel(keras.Model):
     def __init__(self, classes):
@@ -54,7 +55,7 @@ class CustomModel(keras.Model):
     #essentially the Functional API forward-pass call-structure shenanigans
     #called each forward propagation (calculating loss, training, etc.)
     def call(self, inputs):
-        print("INPUTS: " + str(inputs))
+        #print("INPUTS: " + str(inputs))
         x = self.conv_1(inputs)
         x = self.batch_1(x)
         x = self.conv_2(x)
@@ -80,14 +81,16 @@ class CustomModel(keras.Model):
         return x #returns the constructed model
     
     #pass the augmented data and the full unaugmented labels for indexing
-    def data_import(self, augmented_data, y_true_all):
+    #basically imports the data that you're feeding into .fit() separately since i dont feel like dealing with low-level tensorflow shenanigans
+    def data_import(self, augmented_data, x_all, batch_size):
         self.augmented_data = augmented_data
-        self.y_true_all = np.asarray(y_true_all, dtype=np.int8) #in theory you could get this from the fit function but thats hard and im lazy + that might mess up some other stuff idfk
+        self.x_all = np.asarray(x_all, dtype=np.float32) #in theory you could get this from the fit function but thats hard and im lazy + that might mess up some other stuff idfk
+        self.batch_size = batch_size
         
     def comparative_loss(self, y_true, y_pred, y_aug):
-        print("Y_TRUE" + str(y_true))
-        print("Y_PRED " + str(y_pred))
-        print("Y_AUG" + str(y_aug))
+        #print("Y_TRUE" + str(y_true))
+        #print("Y_PRED " + str(y_pred))
+        #print("Y_AUG" + str(y_aug))
         loss = keras.backend.square(y_pred - y_true)  # (batch_size, 2)
     
                     
@@ -98,25 +101,37 @@ class CustomModel(keras.Model):
     def train_step(self, data):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
-        x, y = data
-        y_true = y #tensorflow uses y as y_true, but thats confusing
-        
-        print("Y TRUE ALL" + str(self.y_true_all))
-        print("Y TRUE INSTANCE" + str(y_true))
-        print("YEEEYEY" + str(y_true.numpy())) #needs to have eager execution enabled for .numpy()to work, supposedly eager execution is slightly slower but there are literally no better available solutions :(
-        #a lower level implementation could potentially make this part significantly more efficient by not having to perform a search each time
-        aug_index = 0
-        y_true_arr = y_true.numpy()
-        for i in range(np.size(self.y_true_all, axis = 0) - 1): 
-            if np.array_equal(self.y_true_all[i], y_true_arr): #y_true is of type tf.data.Dataset
-                aug_index = i 
-        print(aug_index)
+        x, y = data #current batch
+        #print("All Images" + str(self.x_all[0:10]))
+        #print("Current batch of images" + str(x))
+        #print("Current batch as array" + str(x.numpy()[0:10])) #needs to have eager execution enabled for .numpy() to work, supposedly eager execution is slightly slower but there are literally no better available solutions :(
+        #a lower level implementation could make this part significantly more efficient by not having to perform a search each time
+        aug_index = 0#image sequences are much more likely to be unique than labels
+        self.x_arr = x.numpy() #turn into numpy array, EAGER EXECUTION MUST BE ENABLED, also made as attribute of class temporarily for easy debuggin, remember ot revert
+        #plt.imshow(self.x_all[0])
+        #plt.imshow(self.x_arr[0]) 
+        #print(range(np.size(self.x_all, axis = 0)))
+        found = False #whether the proper index was located
+        for i in range(np.size(self.x_all, axis = 0)): #range() automatically ends at second arg - 1
+            difference = cv.subtract(self.x_all[i], self.x_arr[0]) #difference between original and current image
+            #print(difference)
+            #if np.array_equal(self.x_all[i], self.x_arr[0]) and np.array_equal(self.x_all[i+self.batch_size], self.x_arr[self.batch_size - 1]):
+            if np.count_nonzero(difference) == 0: #will not work if, in the .fit() line, shuffle is set as "True"
+                #self.twinsies = self.x_all[i+(self.batch_size-1)]
+                #self.twinsiese = self.x_arr[batch_size-1]
+                aug_index = i #lower bound
+                found = True
+        if found == False:
+            print("yikes mate the image wasn't found... hold up that doesnt make sense")
+                
+        print("\nOIOI " + str(aug_index))
         
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)  # Forward pass
             
-            y_aug = self(self.augmented_data[aug_index], training=True) #Prediction for augmented data
-            loss = self.comparative_loss(y_true, y_pred, y_aug) #Compute the loss value
+            y_aug = self(self.augmented_data[aug_index:aug_index+self.batch_size], training=True) #Prediction for augmented data, no need for - 1 on batch_size since : doesn't include the last number
+            
+            loss = self.comparative_loss(y, y_pred, y_aug) #Compute the loss value
         
         #I didnt touch any of this code
         trainable_vars = self.trainable_variables
@@ -158,6 +173,7 @@ class shrek_is_love:
             self.complements.append(im)
         self.complements = np.asarray(self.complements, dtype=np.float)
         self.images = self.images.astype(np.float)
+        self.images = self.images / 255.0
         self.preprocessor()
         
     def preprocessor(self):
@@ -171,9 +187,10 @@ class shrek_is_love:
         self.images_train, self.images_test, self.labels_train, self.labels_test = train_test_split(self.images, self.labels, test_size=0.25, random_state=shared_seed)
         
 #in practice, the below will be all that needs to be given to the model
+batch_size = 32
 shrek_is_life = shrek_is_love()
 model = CustomModel(10) #10 classes
-model.data_import(shrek_is_life.complements_train, shrek_is_life.labels_train) #the model will not be training on aug_data, essentially turning it into a secondary test set
+model.data_import(shrek_is_life.complements_train, shrek_is_life.images_train, batch_size) #the model will not be training on aug_data, essentially turning it into a secondary test set
 model.compile(optimizer='adam', loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'], run_eagerly=True) #you can give it anything for loss; it'll ignore it and use the custom one
 print(shrek_is_life.images_train.shape)
-model.fit(x = shrek_is_life.images_train, y = shrek_is_life.labels_train, epochs = 1)
+model.fit(x = shrek_is_life.images_train, y = shrek_is_life.labels_train, shuffle = False, batch_size = batch_size, epochs = 1)
