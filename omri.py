@@ -51,6 +51,8 @@ class CustomModel(keras.Model):
         self.layer_2 = Dense(256,activation='relu')
         self.dropout = keras.layers.Dropout(0.2)
         self.outputs = Dense(classes, activation='softmax') #no. of classes
+        
+        self.classes = classes #Initializes the number of classes variable
     
     #essentially the Functional API forward-pass call-structure shenanigans
     #called each forward propagation (calculating loss, training, etc.)
@@ -87,18 +89,22 @@ class CustomModel(keras.Model):
         self.batch_size = batch_size
         
     def comparative_loss(self, y_true, y_pred, y_aug):
-        #print("Y_TRUE" + str(y_true))
-        #print("Y_PRED " + str(y_pred))
-        #print("Y_AUG" + str(y_aug))
-        loss = keras.backend.square(y_pred - y_true)  # (batch_size, 2)
-    
-                    
-        # summing both loss values along batch dimension 
-        loss = keras.backend.sum(loss, axis=1)        # (batch_size,)
-        return loss
+        print("Y_TRUE" + str(y_true))
+        print("Y_PRED " + str(y_pred))
+        print("Y_AUG" + str(y_aug))
+        #loss = keras.backend.square(y_pred - y_true) #This was a temporary loss function I used while I was testing other aspects of the program
+        output_loss = tf.TensorArray(tf.float32, size=self.classes)
+        batch_loss = tf.TensorArray(tf.float32, size=self.batch_size)
+        for n in range(self.batch_size):
+            for i in range(self.classes):
+                output_loss[i] = tf.square(tf.abs(tf.subtract(y_pred[n][i], y_aug[n][i]))) #finds Euclidean Distance for each prediction, then averages the loss across all iterations in the batch
+            batch_loss[n] = sum(output_loss)
+        total_loss = sum(batch_loss)
+        
+        return total_loss
         
     def train_step(self, data):
-        x, y = data #current batch
+        x, y = data #Current batch
         
         #Finds the range of indexes for the complements of the current batch of images
         #A lower level implementation could make this significantly more efficient by avoiding searching each time
