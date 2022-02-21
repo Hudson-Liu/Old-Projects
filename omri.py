@@ -25,7 +25,6 @@ from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, BatchNormalizatio
 import ssl
 import numpy as np
 import cv2 as cv
-import matplotlib.pyplot as plt #Useful for debugging and visualization
 
 class CustomModel(keras.Model):
     def __init__(self, classes):
@@ -88,18 +87,21 @@ class CustomModel(keras.Model):
         self.x_all = np.asarray(x_all, dtype=np.float32)
         self.batch_size = batch_size
         
+    #Very useful advice: https://stackoverflow.com/questions/65889381/going-from-a-tensorarray-to-a-tensor
     def comparative_loss(self, y_true, y_pred, y_aug):
-        print("Y_TRUE" + str(y_true))
-        print("Y_PRED " + str(y_pred))
-        print("Y_AUG" + str(y_aug))
-        #loss = keras.backend.square(y_pred - y_true) #This was a temporary loss function I used while I was testing other aspects of the program
         output_loss = tf.TensorArray(tf.float32, size=self.classes)
         batch_loss = tf.TensorArray(tf.float32, size=self.batch_size)
         for n in range(self.batch_size):
             for i in range(self.classes):
-                output_loss[i] = tf.square(tf.abs(tf.subtract(y_pred[n][i], y_aug[n][i]))) #finds Euclidean Distance for each prediction, then averages the loss across all iterations in the batch
-            batch_loss[n] = sum(output_loss)
-        total_loss = sum(batch_loss)
+                output_loss = output_loss.write(i, tf.square(tf.abs(tf.subtract(y_pred[n][i], y_aug[n][i])))) #finds Euclidean Distance for each prediction, then averages the loss across all iterations in the batch
+            indexes = tf.keras.backend.arange(0, self.classes, step=1, dtype='int32')
+            output_loss_tensor = output_loss.gather(indexes)
+            batch_loss = batch_loss.write(n, tf.math.reduce_sum(output_loss_tensor))
+        indexes = tf.keras.backend.arange(0, self.batch_size, step=1, dtype='int32')
+        batch_loss_tensor = batch_loss.gather(indexes)
+        total_loss = tf.math.reduce_sum(batch_loss_tensor)
+        total_loss = tf.math.divide(total_loss, self.batch_size)
+        print("TOTAL LOSS: " + str(total_loss))
         
         return total_loss
         
