@@ -42,13 +42,13 @@ public class RedCarouselSideParking extends LinearOpMode {
     private void setMovement(double speed, double theta, double r)
     {
     	double rad = Math.toRadians(theta);
-	    double V_h = speed*Math.sin(rad);
-	    double V_v = speed*Math.cos(rad);
-	    double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
-	    
-	    m0.setPower((V_v-V_h+r)/denominator);//Back Left
-	    m1.setPower((V_v-V_h-r)/denominator);//Front Right
-	    m2.setPower((V_h+V_v-r)/denominator);//Back Right
-	    m3.setPower((V_h+V_v+r)/denominator);//Front Left
+	double V_h = speed*Math.sin(rad);
+	double V_v = speed*Math.cos(rad);
+	double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
+	   
+	m0.setPower((V_v-V_h+r)/denominator);//Back Left
+	m1.setPower((V_v-V_h-r)/denominator);//Front Right
+	m2.setPower((V_h+V_v-r)/denominator);//Back Right
+	m3.setPower((V_h+V_v+r)/denominator);//Front Left
     }
 }
