@@ -427,8 +427,8 @@ public class Swerve extends LinearOpMode {
     {
     	double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
     	t1 = (V_v-V_h+r)/denominator;//Back Left
-	    t2 = (V_v-V_h-r)/denominator;//Front Right
-	    t3 = (V_h+V_v-r)/denominator;//Back Right
-	    t4 = (V_h+V_v+r)/denominator;//Front Left
+	t2 = (V_v-V_h-r)/denominator;//Front Right
+	t3 = (V_h+V_v-r)/denominator;//Back Right
+	t4 = (V_h+V_v+r)/denominator;//Front Left
     }
 }
