@@ -15,9 +15,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.*;
 
-@TeleOp(name="Swerve", group="Testing")
+@TeleOp(name="Mecanum", group="Testing")
 public class Swerve extends LinearOpMode {
-    Servo s0, s1, s2, s3;
     CRServo bucket;    
     DcMotor m0, m1, m2, m3, l0, c0, f0, f1;
     float t1, t2, t3, t4;
@@ -28,11 +27,7 @@ public class Swerve extends LinearOpMode {
     {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        
-        s0 = hardwareMap.servo.get("s0");
-        s1 = hardwareMap.servo.get("s1");
-        s2 = hardwareMap.servo.get("s2");
-        s3 = hardwareMap.servo.get("s3");
+     
         bucket = hardwareMap.crservo.get("bucket");
         
         m0 = hardwareMap.dcMotor.get("motor0");
