@@ -314,7 +314,8 @@ public class Swerve extends LinearOpMode {
         while (opModeIsActive())
         {
             // init values
-            this.setPower(0);
+            this.setMovement(0, 0, 0);
+        	//this.setPower(0);
             c0.setPower(0);
             
             //stopwatches for 1 second
@@ -323,6 +324,7 @@ public class Swerve extends LinearOpMode {
             // gamepad 1
             
             // wheel direction
+            /*
             if (gamepad1.left_stick_x != 0 && gamepad1.right_stick_x == 0) {
                 this.setPos(0.5 * gamepad1.left_stick_x + 0.5, false);    
             }
@@ -338,7 +340,8 @@ public class Swerve extends LinearOpMode {
             if (gamepad1.left_trigger > 0) this.setPower(-gamepad1.left_trigger);
             if (gamepad1.a) this.setPower(-10);
             if (gamepad1.b) this.setPower(10);
-            
+            */
+            this.setMovement(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
             
             // gamepad 2
             
@@ -420,28 +423,12 @@ public class Swerve extends LinearOpMode {
         }
     }
     
-    private void setPower(float value)
+    private void setMovement(double V_v, double V_h, double r)
     {
-        t1 = -value;
-        t2 = value;
-        t3 = -value;
-        t4 = value;
-    }
-    
-    private void setPos(double value, boolean sameDir)
-    {
-        if (!sameDir) {
-            double v = -1.0 * value + 1.0;
-            s0.setPosition(value);
-            s1.setPosition(value);
-            s2.setPosition(v);
-            s3.setPosition(v); 
-        }
-        else {
-            s0.setPosition(value);
-            s1.setPosition(value);
-            s2.setPosition(value);
-            s3.setPosition(value);
-        }
+    	double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
+    	t1 = (V_v-V_h+r)/denominator;//Back Left
+	    t2 = (V_v-V_h-r)/denominator;//Front Right
+	    t3 = (V_h+V_v-r)/denominator;//Back Right
+	    t4 = (V_h+V_v+r)/denominator;//Front Left
     }
 }
