@@ -21,7 +21,8 @@ public class RedCarouselSideParking extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
-
+	
+	/*
         setPos(0.3);
 
         sleep(2000);
@@ -37,6 +38,8 @@ public class RedCarouselSideParking extends LinearOpMode {
         m1.setPower(0);
         m2.setPower(0);
         m3.setPower(0);
+	*/
+	    
     }
 
     private void setMovement(double speed, double theta, double r)
