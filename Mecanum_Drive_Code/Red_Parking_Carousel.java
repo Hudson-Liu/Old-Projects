@@ -39,7 +39,9 @@ public class RedCarouselSideParking extends LinearOpMode {
         m2.setPower(0);
         m3.setPower(0);
 	*/
-	    
+	self.setMovement(1, 120, 0);
+	sleep(1500);
+	self.setMovement(0, 0, 0);
     }
 
     private void setMovement(double speed, double theta, double r)
