@@ -15,11 +15,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.*;
 
-@TeleOp(name="Mecanum", group="Testing")
-public class Swerve extends LinearOpMode {
-    CRServo bucket;    
-    DcMotor m0, m1, m2, m3, l0, c0, f0, f1;
-    float t1, t2, t3, t4;
+@TeleOp(name="Mecanum_TeleOp_Test", group="Testing")
+public class Mecanum_TeleOp_Test extends LinearOpMode {
+    //CRServo bucket;    
+    DcMotor m0, m1, m2, m3,m4; //, l0, c0, f0, f1
+    double t1, t2, t3, t4;
     
     
     @Override
@@ -28,12 +28,14 @@ public class Swerve extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
      
-        bucket = hardwareMap.crservo.get("bucket");
+        //bucket = hardwareMap.crservo.get("bucket");
         
         m0 = hardwareMap.dcMotor.get("motor0");
         m1 = hardwareMap.dcMotor.get("motor1");
         m2 = hardwareMap.dcMotor.get("motor2");
         m3 = hardwareMap.dcMotor.get("motor3");
+        m4=hardwareMap.dcMotor.get("lift0");
+        /*
         l0 = hardwareMap.dcMotor.get("lift0");
         c0 = hardwareMap.dcMotor.get("c0");
         f0 = hardwareMap.dcMotor.get("f0");
@@ -42,21 +44,22 @@ public class Swerve extends LinearOpMode {
         
         bucket.setPower(0);
         
-        
+        */
         waitForStart();
         
         //double bucketPos = bucket.getPosition();        
-        double bucketPos = 0;
-        double flyWheelMulti = -1;
-        double lastFlyWheelMulti = flyWheelMulti;
+        //double bucketPos = 0;
+        //double flyWheelMulti = -1;
+        //double lastFlyWheelMulti = flyWheelMulti;
         
-        ElapsedTime stopwatch = new ElapsedTime(); //measure 0.1 sec between checks
+        /*ElapsedTime stopwatch = new ElapsedTime(); //measure 0.1 sec between checks
         long currentTime = 0;
         double bucketPosMem = 0; //net movement of bucket
         boolean bucketMoving = false; //tells iterator2 to run
         int threshold2 = 0; //too lazy to give a proper name
         int iterator2 = 0; //i sincerely apologize if you're trying to read this code
         double carouselSpeed = 0;
+        */
         
         /*
         Gamepad 1 (driving):
@@ -81,23 +84,38 @@ public class Swerve extends LinearOpMode {
             a- returns the bucket to zero degrees
         */
         
-        UtilToggle utB2 = new UtilToggle();
+        //UtilToggle utB2 = new UtilToggle();
         
         while (opModeIsActive())
         {
             // init values
-            this.setPower(0);
-            c0.setPower(0);
+            this.setMovement(0.0, 0.0, 0.0);
+            //c0.setPower(0);
             
             //stopwatches for 1 second
             //currentTime = stopwatch.time() % 100;
+            if(gamepad1.a==true){
+                m4.setPower(-10);
+            }
+            else if (gamepad1.b == true){
+                m4.setPower(10);
+            }
+            else{
+                m4.setPower(0);
+            }
             
             // gamepad 1
-            this.setMovement(gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
+            this.setMovement(-1*gamepad1.left_stick_x, gamepad1.left_stick_y, gamepad1.right_stick_x);
+            telemetry.addData("ls", gamepad1.left_stick_x);
+            telemetry.addData("rs", gamepad1.left_stick_y);
+            telemetry.addData("l2", gamepad1.right_stick_x);
+            telemetry.addData("m3", t4);
+            telemetry.update();
             
             // gamepad 2
             
             // lift movement
+            /*
             if (gamepad2.y) l0.setPower(-0.35);
             else if (gamepad2.x) l0.setPower(0.35);
             else l0.setPower(0);
@@ -124,7 +142,7 @@ public class Swerve extends LinearOpMode {
                 /*if (currentTime <= 10 && currentTime - prevTime >= 10) { //if at least 0.09-0.1 seconds have passed
                     prevTime = currentTime;
                     bucketPosMem += bucketPos;
-                }*/
+                }
             }
             
             if (utB2.status(gamepad2.b) == UtilToggle.Status.COMPLETE) {
@@ -154,7 +172,7 @@ public class Swerve extends LinearOpMode {
             // flywheel direction
             if (gamepad2.dpad_left) flyWheelMulti = 0.75;
             if (gamepad2.dpad_right) flyWheelMulti = -1;
-            
+            */
             //right bumper
             
             // non-input things
@@ -165,11 +183,11 @@ public class Swerve extends LinearOpMode {
             m2.setPower(t3);
             m3.setPower(t4);
             
-            telemetry.addData("DS", ds.getDistance(DistanceUnit.CM));
-            telemetry.update();
+            //telemetry.addData("DS", ds.getDistance(DistanceUnit.CM));
+            //telemetry.update();
             
-            f0.setPower((float) flyWheelMulti);
-            f1.setPower(-(float) flyWheelMulti);
+            //f0.setPower((float) flyWheelMulti);
+            //f1.setPower(-(float) flyWheelMulti);
             
             idle();
         }
@@ -177,10 +195,10 @@ public class Swerve extends LinearOpMode {
     
     private void setMovement(double V_v, double V_h, double r)
     {
-    	double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
-    	t1 = (V_v-V_h+r)/denominator;//Back Left
-	t2 = (V_v-V_h-r)/denominator;//Front Right
-	t3 = (V_h+V_v-r)/denominator;//Back Right
-	t4 = (V_h+V_v+r)/denominator;//Front Left
+        double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
+        t1 = (-1*(V_v-V_h)-r)/denominator;//Back Left
+        t2 = ((V_v-V_h)-r)/denominator;//Front Right
+        t3 = (-1*(V_h+V_v)-r)/denominator;//Back Right
+        t4 = ((V_h+V_v)-r)/denominator;//Front Left
     }
 }
