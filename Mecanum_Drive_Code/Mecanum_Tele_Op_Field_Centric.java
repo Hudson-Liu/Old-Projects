@@ -22,8 +22,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.*;
 
-@TeleOp(name="Mecanum_TeleOp_Test", group="Testing")
-public class Mecanum_TeleOp_Test extends LinearOpMode {
+@TeleOp(name="Mecanum_TeleOp_Field_Centric", group="Testing")
+public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
     //CRServo bucket;    
     DcMotor m0, m1, m2, m3,m4; //, l0, c0, f0, f1
     double t1, t2, t3, t4;
