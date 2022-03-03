@@ -154,6 +154,7 @@ public class Mecanum_TeleOp_Test extends LinearOpMode {
             else {
                 telemetry.addData("I don't know what you did or how you did this, but I hate you);
             }
+            
             speed = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
             this.setMovement(speed, rotateAngle, gamepad1.right_stick_x);
             
@@ -248,10 +249,10 @@ public class Mecanum_TeleOp_Test extends LinearOpMode {
         double V_h = speed*Math.sin(rad);
         double V_v = speed*Math.cos(rad);
         double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
-
-        m0.setPower((V_v-V_h+r)/denominator);//Back Left
-        m1.setPower((V_v-V_h-r)/denominator);//Front Right
-        m2.setPower((V_h+V_v-r)/denominator);//Back Right
-        m3.setPower((V_h+V_v+r)/denominator);//Front Left
+        
+        t1 = (-1*(V_v-V_h)-r)/denominator;//Back Left
+        t2 = ((V_v-V_h)-r)/denominator;//Front Right
+        t3 = (-1*(V_h+V_v)-r)/denominator;//Back Right
+        t4 = ((V_h+V_v)-r)/denominator;//Front Left
     }
 }
