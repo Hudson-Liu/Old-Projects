@@ -152,7 +152,7 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
                 rotateAngle = joystickAngle - orientationAngle;
             }
             else {
-                telemetry.addData("I don't know what you did or how you did this, but I hate you);
+                telemetry.addData("I don't know what you did or how you did this, but I hate you");
             }
             
             speed = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
