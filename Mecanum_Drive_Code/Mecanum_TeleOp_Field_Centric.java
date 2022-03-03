@@ -1,6 +1,7 @@
 package etts;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
@@ -36,13 +37,23 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
         telemetry.update();
      
         //bucket = hardwareMap.crservo.get("bucket");
+        //initialize gyro stuff
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.calibrationDataFile = "BNO055IMUCalibration.json"; // see the calibration sample opmode
+        parameters.loggingEnabled      = true;
+        parameters.loggingTag          = "IMU";
+        
         
         m0 = hardwareMap.dcMotor.get("motor0");
         m1 = hardwareMap.dcMotor.get("motor1");
         m2 = hardwareMap.dcMotor.get("motor2");
         m3 = hardwareMap.dcMotor.get("motor3");
-        m4=hardwareMap.dcMotor.get("lift0");
+        m4 = hardwareMap.dcMotor.get("lift0");
         imu = hardwareMap.get(BNO055IMU.class, "imu"); 
+        imu.initialize(parameters);
+        
         /*
         l0 = hardwareMap.dcMotor.get("lift0");
         c0 = hardwareMap.dcMotor.get("c0");
@@ -51,14 +62,6 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
         Rev2mDistanceSensor ds = hardwareMap.get(Rev2mDistanceSensor.class, "dist");
         
         bucket.setPower(0);
-
-        //initialize gyro stuff
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-
-        parameters.mode                = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled      = false;
         
         while (!isStopRequested() && !imu.isGyroCalibrated())
         {
@@ -70,7 +73,10 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
       
         waitForStart();
         double rotateAngle = 0;
-      
+        double orientationAngle = 0;
+        double joystickAngle = 0;
+        double speed = 0;
+        
         //double bucketPos = bucket.getPosition();        
         //double bucketPos = 0;
         //double flyWheelMulti = -1;
@@ -138,8 +144,7 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
             //field centric shit
             Orientation orientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
             orientationAngle = orientation.firstAngle;
-            telemetry.addData("Orientation: ", orientationAngle);
-            telemetry.update();  
+            telemetry.addData("Orientation: ", Double.toString(orientationAngle));
           
             joystickAngle = this.findJoystickAngle(gamepad1.left_stick_y, -1*gamepad1.left_stick_x);
             if (joystickAngle > orientationAngle){
@@ -148,12 +153,12 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
             else if (orientationAngle > joystickAngle){
                 rotateAngle = orientationAngle - joystickAngle;
             }
-            else if (-1*orientation == joystickAngle){
+            else if (-1.0 * orientationAngle == joystickAngle){
                 rotateAngle = joystickAngle - orientationAngle;
             }
-            else {
-                telemetry.addData("I don't know what you did or how you did this, but I hate you");
-            }
+            /*else {
+                telemetry.addData("1", "I don't know what you did or how you did this, but I hate you");
+            }*/
             
             speed = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
             this.setMovement(speed, rotateAngle, gamepad1.right_stick_x);
