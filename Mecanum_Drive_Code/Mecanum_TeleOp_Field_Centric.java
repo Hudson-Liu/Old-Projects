@@ -156,9 +156,10 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
             else if (-1.0 * orientationAngle == joystickAngle){
                 rotateAngle = joystickAngle - orientationAngle;
             }
-            /*else {
+            
+            else {
                 telemetry.addData("1", "I don't know what you did or how you did this, but I hate you");
-            }*/
+            }
             
             speed = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
             this.setMovement(speed, rotateAngle, gamepad1.right_stick_x);
@@ -248,9 +249,8 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
         return Math.atan(V_v/V_h); 
     }
   
-    private void setMovement(double speed, double theta, double r)
+    private void setMovement(double speed, double rad, double r)
     {
-        double rad = Math.toRadians(theta);
         double V_h = speed*Math.sin(rad);
         double V_v = speed*Math.cos(rad);
         double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
