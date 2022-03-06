@@ -21,49 +21,43 @@ import matplotlib.pyplot as plt
 #input array cannot be ragged, though idk why it would be
 def k_medoids(array, clusters, iterations, percentile):
     #k medoids clustering
+    removed = []
     for i in range(0, iterations + 1):
+        #train on data w/o outliers
         medoids = KMedoids(n_clusters = clusters, max_iter = 300).fit(array)
         centroids = medoids.cluster_centers_
         
-        #find outliers' indexes and remove
-        distances = findDistToCentroid(array, centroids)
-        dist_sum = []
-        for l in range(0, len(distances)):
-            tsum = 0
-            for i in range(0, len(distances[l])):
-                tsum = tsum + distances[l][i] 
-            dist_sum.append(tsum)
-        sort_ind = np.argsort(dist_sum)
+        #add back the removed points
+        array.append(removed)
+        predictions = medoids.predict(array)
+        
+        #find distance from each datapoint to centroid
+        distances = []
+        dimensions = len(array[0])
+        for l in range(0, len(array)): #for each datapoint
+            respective_centroid = centroids[predictions[l]] #find the corresponding centroid for the given datapoint
+            distance = 0
+            for i in range(0, dimensions): #and calculate the distance to the centroid between the two
+                distance = distance + ((array[l][i] - respective_centroid[l][i]) ** 2)
+            distances.append(math.sqrt(distance))
+        
+        #remove the biggest distances from the list
+        sort_ind = np.argsort(distances)
         chunk = (1.0 - percentile) * len(sort_ind)
         remove = sort_ind[-chunk:]
+        remove = np.sort(remove) #needs to be sorted or else messes up indexing
+        remove = np.flip(remove)
+        removed = []
         for e in range(0, len(remove)):
-            array.pop(remove[e])
-        
-    return distances, dist_sum
+            removed.append(array.pop(remove[e]))
+            
+    return medoids
         #for i in enumerate(centroids):
             #distances = np.append(distances, cdist([center_elem],data[clusters == i], 'euclidean')) 
             #insert cdist stuff and then just replace parts of points and distances w/ it
             #use this: https://medium.datadriveninvestor.com/outlier-detection-with-k-means-clustering-in-python-ee3ac1826fb0
 
-#given points to classify and the model returned by k_medoids function
-def prediction(array, medoids):
-    distances = findDistToCentroid(array, medoids.cluster_center_)  
-    return medoids.predict(distances)
 
-#i just now realized that the sklearn function "pairwise_distances" does exactly this
-#private, only ran by class
-def findDistToCentroid(array, centroids):
-    distances = []
-    dimensions = len(array[0])
-    for element in range(0, len(array)):
-        distances.append([])
-        for complement in range(0, len(centroids)): #replace 0 with elements to remove repeats
-            distance = 0
-            for i in range(0, dimensions):
-                distance = distance + ((array[element][i] - centroids[complement][i]) ** 2)
-            distances[element].append(math.sqrt(distance))
-    distances = np.array(distances)
-    return distances
 
 array = [[2,3,5,3],[3,4,5,2],[2,3,4,5]]
 centroids, sume = k_medoids(array, 1, 1, 0.9)
