@@ -11,21 +11,38 @@ influenced by points that are outliers or aren't representative of the overall d
 """
 from sklearn_extra.cluster import KMedoids
 from sklearn.decomposition import PCA
+from sklearn.metrics import pairwise_distances
 import numpy as np
+import math
 
 #input array cannot be ragged, though idk why it would be
-def k_medoids(array, clusters, dimensions, iterations):
-    #dimensionality reduction
-    pca = PCA(n_components=2)
-    array = pca.fit_transform(array)
+def k_medoids(array, clusters, iterations):
+    
     
     #k medoids clustering
     for i in range(0, iterations):
-        medoids = KMedoids(n_clusters = clusters, metric = 'euclidean', max_iter = 300).fit(array)
+        distances = findDistances(array)
+        medoids = KMedoids(n_clusters = clusters, metric = 'precomputed', max_iter = 300).fit(distances)
         centroids = medoids.cluster_centers_
+        #figure out how to correlate distances to the points that they're between
+        #the kmedoid algorithm relies upon clustering points, not distances, so we have to be able to 
+        #correspond those points to the distances that are representing them
+        
         #find outliers
-        points = np.zeros((len(data),len(data[0])), float)
-        distances = np.zeros((len(data),len(data[0])), float)
-        for i in enumerate(centroids):
+        points = np.zeros((len(array),len(array[0])), float)
+        distances = np.zeros((len(array),len(array[0])), float)
+        #for i in enumerate(centroids):
+            
             #insert cdist stuff and then just replace parts of points and distances w/ it
             #use this: https://medium.datadriveninvestor.com/outlier-detection-with-k-means-clustering-in-python-ee3ac1826fb0
+
+def findDistances(array):
+    distances = []
+    dimensions = len(array[0])
+    for element in range(0, len(array)):
+        for complement in range(element, len(array)):
+            distance = 0
+            for i in range(0, dimensions):
+                distance = distance + (array[element][i] - array[complement][i]) ** 2
+            distances.append(math.sqrt(distance))
+    return distances
