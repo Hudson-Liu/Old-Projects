@@ -16,6 +16,7 @@ Proprietary and confidential
 import numpy as np #for arrays
 import pandas as pd #data manipulation and processing
 import sys
+import os
 from joblib import dump
 from sklearn.impute import SimpleImputer #fill out missing data
 from sklearn.compose import ColumnTransformer 
@@ -106,4 +107,12 @@ def PreProcessor(cwd, filepath, index_number): #string, int
     
     data_filename = r"PreProcessed_Data\PreProcessed_Data_" + str(index_number)
     np.savez(data_filename, featuresTrain = featuresTrain, featuresTest = featuresTest, dependantTrain = dependantTrain, dependantTest = dependantTest)
-    return len(featureCol), np.size(features, axis=1), np.size(features, axis=0)
+    
+    #if the file doesn't exist already, create it
+    if not os.path.exists("Dataset_Info.txt"):
+        open('Dataset_Info.txt', 'w')
+        
+    #save down some of the variables necessary for the hyperparameter optimizer
+    with open('Dataset_Info.txt', 'r+') as f:
+        prevText = f.read()
+        f.write(prevText + str(len(featureCol)) + " " + str(np.size(features, axis=1)) + " " + str(np.size(features, axis=0)) + "\n")
