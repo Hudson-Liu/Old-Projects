@@ -122,7 +122,9 @@ class MainClass:
         
         if not self.import_sequentially:
             self.datasets = self.importAllData(datafiles)
-            
+        
+        #open info necessary for hyperparameter optimizer
+        open()UJ08usda098f
     
     #create a list of the files that are going to either be opened or preprocessed
     def findFilepaths(self, path, extension):
@@ -145,7 +147,7 @@ class MainClass:
         cwd = os.getcwd()
         for file in files:
             file = cwd + "\\Metadata\\" + file
-            len_features, len_depVar = Data_PreProcessor.PreProcessor(cwd, file, counter)
+            Data_PreProcessor.PreProcessor(cwd, file, counter)
             counter += 1
     
     def importAllData(self, datafiles):
@@ -164,10 +166,11 @@ class MainClass:
         dataset = np.load(filepath)
         
         return dataset
-
+    
     #training loop for single solution
     def training_loop():
         mainNet = MainNet()
+        
         mainNet.hyperparameters()
         
             
