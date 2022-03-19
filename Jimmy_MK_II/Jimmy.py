@@ -78,7 +78,9 @@ class MainNet: #holds MainNet, Weight iterator, and Bias iterator
         inputs = keras.Input(shape=(3,)) #num_features, num_depVar, num_samples
         FFNNlayer1 = keras.layers.Dense(100, activation='relu')(inputs)
         FFNNlayer2 = keras.layers.Dense(100, activation='relu')(FFNNlayer1)
-        outputs = keras.layers.Dense(4, activation='sigmoid')(FFNNlayer2)
+        numericalOutput = keras.layers.Dense(3, activation='sigmoid')(FFNNlayer2) #num of hidden layers, nodes per hidden layer, one hot encoded activation functions, and epochs
+        categoricalOutput = keras.layers.Dense(7, activation='softmax')(FFNNlayer2) #Taking advantage of the Functional API, we can give the output layer multiple activations. In this case, since one output (the activaiton function of the subnet) is onehotencoded, while the other outputs are all numerical, the numerical ones caxn be covered under a sigmoid activation, and the categorical onehotencoded activaiton function data can be represented with softmax activation functions
+        outputs = keras.layers.concatenate(numericalOutput, categoricalOutput)
         self.hyperparameters = keras.Model(inputs=inputs, outputs=outputs, name="hyperparameters")
         self.hyperparameters.summary()
     """
@@ -97,13 +99,13 @@ class MainNet: #holds MainNet, Weight iterator, and Bias iterator
         """
 class SubNet:
     #add required specification of output_size to metadata document
-    def __init__(self, num_layers, activation, num_nodes, dataset, num_features, output_size): #int,
+    def __init__(self, num_layers, activation, num_nodes, input_size, output_size): #int, str, int, int, int
             self.subNet = keras.Sequential()
-            self.subNet.add(keras.layers.Input(shape = (num_features,)))
+            self.subNet.add(keras.layers.Input(shape = (input_size,)))
             nodes_per_layer = num_nodes/num_layers
             for i in range(num_layers):
-                self.subNet.add(keras.layers.Dense(nodes_per_layer))
-            self.subNet.add(keras.layers.Dense(output_size))
+                self.subNet.add(keras.layers.Dense(nodes_per_layer, activation=activation))
+            self.subNet.add(keras.layers.Dense(output_size, activation='sigmoid'))
 
 class MainClass:
     def __init__(self, existing_preprocessed_data, import_sequentially, epochs_per_mainNet): #both are boolean
@@ -180,6 +182,7 @@ class MainClass:
             dataset_info = scaler.fit_transform(dataset_info)
             tensorflow_dataset_info =  tf.data.Dataset.from_tensor_slices(dataset_info)
             hyperparameters = mainNet.hyperparameters(tensorflow_dataset_info) #forward propagation of hyperparameter optimizer
+            #scale hyperparametsr so that they actualy arents just between 0 and 1 but represent meaningfu values
             subNetInstance = SubNet(hyperparameters)
             
         
