@@ -114,5 +114,4 @@ def PreProcessor(cwd, filepath, index_number): #string, int
         
     #save down some of the variables necessary for the hyperparameter optimizer
     with open('Dataset_Info.txt', 'r+') as f:
-        prevText = f.read()
-        f.write(prevText + str(len(featureCol)) + " " + str(np.size(features, axis=1)) + " " + str(np.size(features, axis=0)) + "\n")
+        f.write(str(len(featureCol)) + " " + str(np.size(features, axis=1)) + " " + str(np.size(features, axis=0)) + "\n")
