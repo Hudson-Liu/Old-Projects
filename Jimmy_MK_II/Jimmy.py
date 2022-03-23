@@ -22,19 +22,17 @@ import os
 import glob
 from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
+from math import ceil, floor
 
 class MainNet: #holds MainNet, Weight iterator, and Bias iterator
     def __init__(self):
         self.logitsInterpreterInit()
         self.intentionNetInit()
         self.weightIteratorInit()
+        self.biasIteratorInit()
         self.hyperParameter_Optimizer_Init()
         #make a new function to import a new subnet function so that the actual training
         #loop just needs to hand off a new SubNet to the mainNetTrainingLoop function each epoch
-        
-    #updates every training step/epoch for the SubNet
-    def setSubNet(self, SubNet):
-        self.SubNet = SubNet
         
     def logitsInterpreterInit(self):
         #creates stacked lstm, all these values i pulled out of my arse
@@ -62,25 +60,38 @@ class MainNet: #holds MainNet, Weight iterator, and Bias iterator
     def weightIteratorInit(self):
         #the shape is (one single intention per batch, number of weights in SubNet (cant be specified since when running this same model across many other SubNets, they wont be identically sized), individual weight + intention)
         #output size of intentionNet
-        unprocessed_weights = self.logits_interpreter.layers[len(self.logits_interpreter.layers) - 1].get_weights() #get the weights and biases of the last layer of the subnet
+        unprocessed_weights = self.intention.layers[len(self.intention.layers) - 1].get_weights() #get the weights and biases of the last layer of the subnet
         num_of_biases = len(unprocessed_weights[1]) #get the number of biases, which is equal to the amoutn of output nodes
+        weightIntent = int(ceil(num_of_biases))
         
         #initializaes model
-        inputs = keras.Input(shape = (None, (1 + num_of_biases))) #the one is the actual weight
+        inputs = keras.Input(shape = (None, (1 + weightIntent))) #the "1" is the actual weight, and the num of biases/2 is since half of the outputs of the intentionNet are for the weights, and the other half is for the biases
         LSTMlayer1 = keras.layers.LSTM(1000, return_sequences=True)(inputs)
         LSTMlayer2 = keras.layers.LSTM(500, return_sequences=True)(LSTMlayer1)
         outputs = keras.layers.TimeDistributed(keras.layers.Dense(1, activation='softmax'))(LSTMlayer2)
         self.weights = keras.Model(inputs=inputs, outputs=outputs, name="weights")
         self.weights.summary()
-        #finish weight iterator, make bias iterator, finish training step
     
+    def biasIteratorInit(self):
+        unprocessed_weights = self.intention.layers[len(self.intention.layers) - 1].get_weights() #get the weights and biases of the last layer of the subnet
+        num_of_biases = len(unprocessed_weights[1]) #get the number of biases, which is equal to the amoutn of output nodes
+        biasIntent = int(floor(num_of_biases)) #this is the portion of the IntentionNet output intended for the bias iterator
+        
+        #initializaes model
+        inputs = keras.Input(shape = (None, (1 + biasIntent))) #the "1" is the actual weight, and the num of biases/2 is since half of the outputs of the intentionNet are for the weights, and the other half is for the biases
+        LSTMlayer1 = keras.layers.LSTM(1000, return_sequences=True)(inputs)
+        LSTMlayer2 = keras.layers.LSTM(500, return_sequences=True)(LSTMlayer1)
+        outputs = keras.layers.TimeDistributed(keras.layers.Dense(1, activation='softmax'))(LSTMlayer2)
+        self.biases = keras.Model(inputs=inputs, outputs=outputs, name="biases")
+        self.biases.summary()
+        
     def hyperParameter_Optimizer_Init(self):
         inputs = keras.Input(shape=(3,)) #num_features, num_depVar, num_samples
         FFNNlayer1 = keras.layers.Dense(100, activation='relu')(inputs)
         FFNNlayer2 = keras.layers.Dense(100, activation='relu')(FFNNlayer1)
         numericalOutput = keras.layers.Dense(3, activation='sigmoid')(FFNNlayer2) #num of hidden layers, nodes per hidden layer, one hot encoded activation functions, and epochs
-        categoricalOutput = keras.layers.Dense(7, activation='softmax')(FFNNlayer2) #Taking advantage of the Functional API, we can give the output layer multiple activations. In this case, since one output (the activaiton function of the subnet) is onehotencoded, while the other outputs are all numerical, the numerical ones caxn be covered under a sigmoid activation, and the categorical onehotencoded activaiton function data can be represented with softmax activation functions
-        outputs = keras.layers.concatenate(numericalOutput, categoricalOutput)
+        categoricalOutput = keras.layers.Dense(9, activation='softmax')(FFNNlayer2) #Taking advantage of the Functional API, we can give the output layer multiple activations. In this case, since one output (the activaiton function of the subnet) is onehotencoded, while the other outputs are all numerical, the numerical ones caxn be covered under a sigmoid activation, and the categorical onehotencoded activaiton function data can be represented with softmax activation functions
+        outputs = keras.layers.concatenate([numericalOutput, categoricalOutput])
         self.hyperparameters = keras.Model(inputs=inputs, outputs=outputs, name="hyperparameters")
         self.hyperparameters.summary()
     """
@@ -169,6 +180,21 @@ class MainClass:
         
         return dataset
     
+    
+    #figuring out the output of the hyperparameter optimizer by decoding it into useful information that can then be used for the creation of the subnet
+    def decodeHyperparameterOutput():
+        """ List of activation Functions
+        relu
+        sigmoid
+        softmax
+        softplus
+        softsign
+        tanh
+        selu
+        elu
+        exponential
+        """
+        
     #training loop for single solution
     def training_loop(self):
         for i in range(self.epochs_per_mainNet):
