@@ -214,3 +214,5 @@ class MainClass:
         
             
 #jimmy = MainNet(50) #the only parameter is how many epochs each SubNet is ran
+# but did you consider adding a monkE everywhere? 
+print('MonkEEEEEEEEEEEEEEEEEE')
