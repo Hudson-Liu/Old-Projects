@@ -3,6 +3,3 @@ CreditScore Geography Gender Age Tenure Balance NumOfProducts HasCrCard IsActive
 Exited
 1 2
 LabelEncode
-1
-binary_crossentropy
-Final_data.csv
