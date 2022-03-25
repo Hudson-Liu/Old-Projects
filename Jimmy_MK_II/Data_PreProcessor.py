@@ -23,7 +23,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+
 
 def PreProcessor(cwd, filepath, index_number): #string, int
     #just a litte default checkpoint for debugging
@@ -38,7 +38,6 @@ def PreProcessor(cwd, filepath, index_number): #string, int
     dependantInput = metadata[2].replace("\n", "")
     categoricalIndex = list(map(int, (metadata[3].replace("\n", "")).split(" ")))
     dependantEncodingType = metadata[4].replace("\n", "")
-    randomState = int(metadata[5].replace("\n", ""))
     
     datapath = cwd + "\\Datasets\\" + filename
     rawData = pd.read_csv(datapath, sep=",")
@@ -72,46 +71,43 @@ def PreProcessor(cwd, filepath, index_number): #string, int
     categorical = np.array(encoder.fit_transform(categorical))
     encoder_filename = r"Encoders\OneHotEncoding_" + str(index_number) + ".joblib"
     dump(encoder, encoder_filename)
-    
     if dependantEncodingType == "LabelEncode":
         encoderLabel = LabelEncoder()
         depVar = encoderLabel.fit_transform(depVar)
     elif dependantEncodingType == "OneHot":
-        dependantLength = np.size(depVar)
-        depIndex = [*range(dependantLength)]
-        encoderLabel = ColumnTransformer(transformers = [('encoder', OneHotEncoder(), depIndex)], remainder = 'passthrough')
+        depVar = depVar.reshape(-1, 1)
+        encoderLabel = ColumnTransformer(transformers = [('encoder', OneHotEncoder(), [0])], remainder = 'passthrough')
         depVar = encoderLabel.fit_transform(depVar)
         dep_encoder_filename = r"Encoders\DependentEncoding_" + str(index_number) + ".joblib"
         dump(encoderLabel, dep_encoder_filename)
     elif dependantEncodingType == "Numerical": #this is here that way it wont be grouped into the else statement and skip labelencoding
         None
     else:
-        print("Invalid syntax in Metadata document. \n The Encoding type is unknown. \n The program will now abort")
+        print("Invalid syntax in Metadata document. \nThe Encoding type is unknown. \nThe program will now abort")
         sys.exit()
     
     #connect categorical and non categorical
     features = np.concatenate((categorical, numerical), axis = 1,)
     
-    featuresTrain, featuresTest, dependantTrain, dependantTest = train_test_split(features, depVar, test_size = 0.2, random_state = randomState) #random state synced with metadata
-    
     #feature scaling also hudson YOUR SO DUMB REMMEBEr LEN() IS ONLY FOR LIST DUMMY
     scaler = StandardScaler()
-    featuresLength = np.size(featuresTrain, 1)
+    featuresLength = np.size(features, 1)
     categoricalLength = np.size(categorical, 1) #how many columns that have been one hot encoded
     scalerIndexRev = [*range(categoricalLength)] #indexes of one hot encoded columns
     scalerIndex = [i for i in range(featuresLength) if i not in scalerIndexRev] #indexes of normal columns
-    featuresTrain[:, scalerIndex] = scaler.fit_transform(featuresTrain[:, scalerIndex])
-    featuresTest[:, scalerIndex] = scaler.transform(featuresTest[:, scalerIndex])
-    featuresTrain = np.asarray(featuresTrain).astype(np.float32)
-    featuresTest = np.asarray(featuresTest).astype(np.float32)
+    features[:, scalerIndex] = scaler.fit_transform(features[:, scalerIndex])
+    features = np.asarray(features).astype(np.float32)
     
     data_filename = r"PreProcessed_Data\PreProcessed_Data_" + str(index_number)
-    np.savez(data_filename, featuresTrain = featuresTrain, featuresTest = featuresTest, dependantTrain = dependantTrain, dependantTest = dependantTest)
+    np.savez(data_filename, features = features, depVar = depVar)
     
     #if the file doesn't exist already, create it
     if not os.path.exists("Dataset_Info.txt"):
         open('Dataset_Info.txt', 'w')
         
+    if (depVar.ndim != 2):
+        depVar = depVar.reshape(-1, 1)
+        
     #save down some of the variables necessary for the hyperparameter optimizer
     with open('Dataset_Info.txt', 'r+') as f:
-        f.write(str(len(featureCol)) + " " + str(np.size(features, axis=1)) + " " + str(np.size(features, axis=0)) + "\n")
+        f.write(str(len(featureCol)) + " " + str(np.size(features, axis=1)) + " " + str(np.size(features, axis=0)) + " " + str(np.size(depVar, axis=1)) + "\n")
