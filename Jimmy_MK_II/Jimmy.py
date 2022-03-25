@@ -21,7 +21,6 @@ import Data_PreProcessor
 import os
 import glob
 from sklearn.preprocessing import StandardScaler
-import tensorflow as tf
 from math import ceil, floor
 
 class MainNet: #holds MainNet, Weight iterator, and Bias iterator
@@ -86,7 +85,7 @@ class MainNet: #holds MainNet, Weight iterator, and Bias iterator
         self.biases.summary()
         
     def hyperParameter_Optimizer_Init(self):
-        inputs = keras.Input(shape=(3,)) #num_features, num_depVar, num_samples
+        inputs = keras.Input(shape=(3,), batch_size=1) #num_features, num_depVar, num_samples
         FFNNlayer1 = keras.layers.Dense(100, activation='relu')(inputs)
         FFNNlayer2 = keras.layers.Dense(100, activation='relu')(FFNNlayer1)
         numericalOutput = keras.layers.Dense(3, activation='sigmoid')(FFNNlayer2) #num of hidden layers, nodes per hidden layer, one hot encoded activation functions, and epochs
@@ -94,20 +93,7 @@ class MainNet: #holds MainNet, Weight iterator, and Bias iterator
         outputs = keras.layers.concatenate([numericalOutput, categoricalOutput])
         self.hyperparameters = keras.Model(inputs=inputs, outputs=outputs, name="hyperparameters")
         self.hyperparameters.summary()
-    """
-    def setWeights(self):
-        for(how many layers there are):
-            layer.setWeights()
-    
-    #a single step of training, logits are raw logits from SubNet
-    def mainNetTrainingStep(SubNet_logits, correct_logits):
-        
-        logits_interpreter(logits, correct)
-            
-    
-        
-    def genAlg(): #generational algorithm
-        """
+
 class SubNet:
     #add required specification of output_size to metadata document
     def __init__(self, num_layers, activation, num_nodes, input_size, output_size): #int, str, int, int, int
@@ -119,10 +105,12 @@ class SubNet:
             self.subNet.add(keras.layers.Dense(output_size, activation='sigmoid'))
 
 class MainClass:
-    def __init__(self, existing_preprocessed_data, import_sequentially, epochs_per_mainNet): #both are boolean
+    def __init__(self, existing_preprocessed_data, import_sequentially, epochs_per_mainNet, single_shot, samplewiseImportInfo): #both are boolean
         self.existing_preprocessed_data = existing_preprocessed_data
         self.import_sequentially = import_sequentially
         self.epochs_per_mainNet = epochs_per_mainNet
+        #self.single_shot = single_shot
+        #self.samplewiseImportInfo = samplewiseImportInfo
         
         #preprocess data if necessary
         if not self.existing_preprocessed_data:
@@ -138,6 +126,8 @@ class MainClass:
         
         if not self.import_sequentially:
             self.datasets = self.importAllData(datafiles)
+        
+        #self.training_loop(single_shot, samplewiseImportInfo)
     
     #create a list of the files that are going to either be opened or preprocessed
     def findFilepaths(self, path, extension):
@@ -180,39 +170,84 @@ class MainClass:
         
         return dataset
     
-    
     #figuring out the output of the hyperparameter optimizer by decoding it into useful information that can then be used for the creation of the subnet
-    def decodeHyperparameterOutput():
-        """ List of activation Functions
-        relu
-        sigmoid
-        softmax
-        softplus
-        softsign
-        tanh
-        selu
-        elu
-        exponential
-        """
+    def decodeHyperparameterOutput(encoded):
+        #find activation
+        activations_dict = ["relu", "sigmoid", "softmax", "softplus", "softsign", "tanh", "selu", "elu", "exponential"]
+        activations_index = np.argsort(encoded[0][3:])
+        best_activation = activations_index[0]
+        activation = activations_dict[best_activation]
         
+        #find numerical stuff (total amount of nodes, number of hidden layers, number of epochs)
+        num_total_nodes = 1000 * encoded[0][0] #1000 nodes at most
+        num_hidden_layers = 4 * encoded[0][1] #4 hidden layers at most
+        num_epochs = 500 * encoded[0][2] #500 epochs at most
+        return activation, num_total_nodes, num_hidden_layers, num_epochs
+    
+    #only used for multi-shot network, aka. Jimmy MK II w/ multiple dataset
+    def samplewiseImportInfo(self): #info refers to "dataset_info.txt"
+        #Imports all the Dataset_Info.txt stuff and scales it samplewise one go
+        file = open("Dataset_Info.txt", "r", encoding='utf-8-sig')
+        lines = file.readlines()
+        dataset_info = np.array([[0, 0, 0, 0]])
+        for i in range(0, len(lines)):
+            modified_line = (lines[i].replace("\n", "")).split(" ")
+            #handles this quirk of the data preprocessor when it saves stuff
+            if len(modified_line) == 4:
+                dataset_info = np.append(dataset_info, [modified_line], axis=0)
+            else: 
+                print("There was an incorrect line found in the \"Dataset_Info.txt\" file. This is likely because the first line is just \"\\n\"")
+        dataset_info = dataset_info[1:]
+        
+        #scaling
+        dataset_info = dataset_info.astype(float)
+        scaler = StandardScaler()
+        dataset_info = scaler.fit_transform(dataset_info)#samplewise normalization, linked here: https://stats.stackexchange.com/questions/354774/should-i-normalize-featurewise-or-samplewise
+        return dataset_info
+        
+    #kind of useless (since single-shot avoids the hyperparameter optimizer completely and multi-shot uses samplewiseImportInfo) but i'll keep it in since it might work better than samplewise
+    def featurewiseImportInfo(self, epoch_number):
+        file = open("Dataset_Info.txt", "r", encoding='utf-8-sig')
+        lines = file.readlines()
+        dataset_info = (lines[epoch_number].replace("\n", "")).split(" ")
+        scaler = StandardScaler()
+        dataset_info = np.reshape(dataset_info, (len(dataset_info), 1)) #convert to format for standard scalar
+        dataset_info = scaler.fit_transform(dataset_info)#featurewise normalization, linked below
+        dataset_info = np.reshape(dataset_info, (1, len(dataset_info))) #https://stats.stackexchange.com/questions/354774/should-i-normalize-featurewise-or-samplewise
+        dataset_info = dataset_info.astype(float)
+        #tensorflow_dataset_info =  tf.data.Dataset.from_tensor_slices(dataset_info)
+        return dataset_info
+    
     #training loop for single solution
-    def training_loop(self):
-        for i in range(self.epochs_per_mainNet):
+    def training_loop(self, single_shot, samplewiseImportInfo):
+        #scale all dataset info in one go only if single_shot is false
+        if not single_shot and samplewiseImportInfo:
+            bulk_dataset_info = self.samplewiseImportInfo()
             
+        for i in range(self.epochs_per_mainNet):
             #initializing the subnet via the hyperparameter optimizer
             mainNet = MainNet()
-            file = open("Dataset_Info.txt", "r", encoding='utf-8-sig')
-            lines = file.readlines()
-            dataset_info = (lines[i].replace("\n", "")).split(" ")
-            scaler = StandardScaler()
-            dataset_info = scaler.fit_transform(dataset_info)
-            tensorflow_dataset_info =  tf.data.Dataset.from_tensor_slices(dataset_info)
-            hyperparameters = mainNet.hyperparameters(tensorflow_dataset_info) #forward propagation of hyperparameter optimizer
-            #scale hyperparametsr so that they actualy arents just between 0 and 1 but represent meaningfu values
-            subNetInstance = SubNet(hyperparameters)
+            if not single_shot:
+                #choose which kind of scaling to do on the dataset_info
+                if samplewiseImportInfo:
+                    dataset_info = bulk_dataset_info[i]
+                else:
+                    dataset_info = self.featurewiseImportInfo(i)
+                
+                hyperparameters = mainNet.hyperparameters.predict(np.array([dataset_info])) #forward propagation of hyperparameter optimizer
+                num_hidden_layers, activation, num_total_nodes, num_epochs = self.decodeHyperparameterOutput(hyperparameters)
+                
+                #scale hyperparametsr so that they actualy arents just between 0 and 1 but represent meaningfu values
+                #add dependent variable size to dataset_info export modify respective methods
+                subNetInstance = SubNet(num_hidden_layers, activation, num_total_nodes)
             
         
-            
-#jimmy = MainNet(50) #the only parameter is how many epochs each SubNet is ran
+#jimmy = MainNet(50) #the only parameter is how many epochs each SubNet is rana
 # but did you consider adding a monkE everywhere? 
-print('MonkEEEEEEEEEEEEEEEEEE')
+print('MonkEEEEEEEEEEEEEEEEEEE')
+#the following code is purely for testing purposes
+mainNet = MainNet()
+mainClass = MainClass(False, False, 1, False, True)
+bulk_dataset_info = mainClass.samplewiseImportInfo()
+dataset_info = bulk_dataset_info[0]
+#hyperparameters = mainNet.hyperparameters.predict(np.array([dataset_info]))
