@@ -56,11 +56,14 @@ class Modified_KMedoids:
                 array = np.delete(array, remove[e], axis=0)
             removed = np.array(removed)
     
-        if dimensions == 2:
+        if dimensions == 2 or dimensions == 3:
             images = []
             customFont = ImageFont.truetype("arial.ttf", 24)
             for i in range(iterations):
-                fig = self.two_dim_vis(history[i][0], history[i][1], history[i][2], history[i][3], num_clusters)
+                if dimensions == 2:
+                    fig = self.two_dim_vis(history[i][0], history[i][1], history[i][2], history[i][3], num_clusters)
+                else:
+                    fig = self.three_dim_vis(history[i][0], history[i][1], history[i][2], history[i][3], num_clusters)
                 fig.canvas.draw() #Depending on the backend, the canvas is not automatically drawn, and hence needs to first be manually drawn
                 image = PIL.Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
                 manipulable_image = ImageDraw.Draw(image)
@@ -108,9 +111,48 @@ class Modified_KMedoids:
         plt.show()
         return fig
     
+    def three_dim_vis(self, array, centroids, removed, medoids, num_clusters):
+        fig = plt.figure(figsize=(7, 7))
+        ax = plt.axes(projection='3d')
+        ax.set_title("K-Medoids Algorithm Results")
+            
+        x_data = array[:,0]
+        y_data = array[:,1]
+        z_data = array[:,2]
+        
+        x_centroids = centroids[:,0]
+        y_centroids = centroids[:,1]
+        z_centroids = centroids[:,2]
+        
+        x_outliers = removed[:,0]
+        y_outliers = removed[:,1]
+        z_outliers = removed[:,2]
+        
+        predictions = medoids.labels_.astype(float)
+        colors = [(pred/num_clusters) for pred in predictions]
+        colors = pl.cm.viridis(colors)
+        
+        index = 0
+        for point in array:
+            corresponding_centroid = int(predictions[index])
+            x = [point[0], x_centroids[corresponding_centroid]]
+            y = [point[1], y_centroids[corresponding_centroid]]
+            z = [point[2], z_centroids[corresponding_centroid]]
+            plt.plot(x, y, z, c=colors[index], alpha=0.2)
+            index += 1
+        
+        ax.scatter(x_outliers, y_outliers, z_outliers, marker="*", c = "red", label='Outliers')
+        ax.scatter(x_data, y_data, z_data, c = colors, cmap='brg', marker = ".", label="Datapoints") #converts labels into colors
+        ax.scatter(x_centroids, y_centroids, z_centroids, marker="o", c = "black", label="Centroids")
+        
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3)
+        plt.show()
+        return fig
+    
 #executes the kmedoids class on a 2d randomly generated array for demo purposes
-num_datapoints = int(input("How many Datapoints would you like to cluster? ")) #2000
-array = np.random.rand(num_datapoints, 2)
+dimensions = int(input("How many dimensions would you like? (Visualization works only with 2 or 3 dimensions) "))
+num_datapoints = int(input("How many datapoints would you like to cluster? ")) #2000
+array = np.random.rand(num_datapoints, dimensions)
 clusters = int(input("How many clusters would you like to create? ")) #8
 iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
 percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
