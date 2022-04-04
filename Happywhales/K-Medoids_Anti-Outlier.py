@@ -108,11 +108,12 @@ class Modified_KMedoids:
         plt.show()
         return fig
     
-#stuff below can be removed, it's just to demonstrate proper inputs
-array = np.random.rand(1000,2)
-clusters = 8
-iterations = 30
-percentile = 0.90
+#executes the kmedoids class on a 2d randomly generated array for demo purposes
+num_datapoints = int(input("How many Datapoints would you like to cluster? ")) #2000
+array = np.random.rand(num_datapoints, 2)
+clusters = int(input("How many clusters would you like to create? ")) #8
+iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
+percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
 
 kmedoids = Modified_KMedoids()
 trained_model = kmedoids.k_medoids(array, clusters, iterations, percentile)
