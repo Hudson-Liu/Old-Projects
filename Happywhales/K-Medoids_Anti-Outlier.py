@@ -31,13 +31,16 @@ class Modified_KMedoids:
             if (np.size(array, axis=0) != 0 and num_clusters < np.size(array, axis=0)):
                 medoids = KMedoids(n_clusters = clusters, max_iter = 300).fit(array)
                 centroids = medoids.cluster_centers_
-            elif np.size(array, axis=0 == 0):
-                error_message = "All datapoints have been identified as outliers in iteration {iteration}. The percentile is likely set too low."
-                print(error_message.format(iteration = i))
+            elif (np.size(array, axis=0) == 0):
+                error_message = ("All datapoints have been identified as outliers in iteration {iteration}. " + 
+                                 "There were {num_outlier} outliers and {num_datapoints} ordinary datapoints. " +
+                                 "The percentile is likely set too low.")
+                print(error_message.format(iteration = i, num_outliers = np.size(removed, axis=0), num_datapoints = np.size(array, axis=0)))
                 break
             else:
-                error_message = "The number of datapoints is less than the number of clusters in iteration {iteration}"
-                print(error_message.format(iteration = i))
+                error_message = ("The number of datapoints ({num_datapoints}) is less than the number of clusters " + 
+                                 "({clusters}) in iteration {iteration}")
+                print(error_message.format(num_datapoints = np.size(array, axis=0), clusters = clusters, iteration = i))
                 break
             
             #add back the removed points
@@ -46,8 +49,10 @@ class Modified_KMedoids:
                     history.append([array, centroids, removed, medoids])
                     array = np.append(array, removed, axis = 0)
                 else:
-                    error_message = "No outliers have been detected in iteration {iteration}. The percentile is likely set too high."
-                    print(error_message.format(iteration = i))
+                    error_message = ("No outliers have been detected in iteration {iteration}. " + 
+                                     "There were {num_outlier} outliers and {num_datapoints} ordinary datapoints. " +
+                                     "The percentile is likely set too high.")
+                    print(error_message.format(iteration = i, num_outliers = np.size(removed, axis=0), num_datapoints = np.size(array, axis=0)))
                     break
             predictions = medoids.predict(array)
             
@@ -93,7 +98,11 @@ class Modified_KMedoids:
                 first_img.save(fp='clustering.gif', format='GIF', append_images=images, save_all=True, duration=300, loop=0)
             else:
                 print("No images were able to be created.")
-        return medoids
+        try:
+            return medoids
+        except:
+            print("The medoids variable was never declared")
+            return None
     
     #The name is short for "Two Dimensional Visualization"; visualizes 2d clusters using MatPlotLib
     @staticmethod
