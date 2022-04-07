@@ -100,6 +100,7 @@ public class Ducks_Red extends LinearOpMode {
             }
             
             if (System.currentTimeMillis() - iT > 7250){
+                telemetry.add("Failsafe activated ", counter);
                 break;
             }
             
