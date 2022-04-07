@@ -132,6 +132,7 @@ public class Ducks_Red extends LinearOpMode {
         else if (location == duckLocations.middle) placeBlock(middle, lift, bucket);
         else if (location == duckLocations.top) placeBlock(top, lift, bucket);
         
+        /*
         dir.pointTowardsDegree(-90);
         dir.update();
         sleep(500);
@@ -150,7 +151,7 @@ public class Ducks_Red extends LinearOpMode {
         dir.setPower(0);
         dir.pointTowardsDegree(0);
         dir.update();
-        
+        */
     }
 
     private void placeBlock(Double[] instructions, DcMotor lift, CRServo bucket) {
