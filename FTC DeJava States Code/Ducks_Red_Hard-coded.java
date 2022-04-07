@@ -99,8 +99,8 @@ public class Ducks_Red extends LinearOpMode {
                 }
             }
             
-            if (System.currentTimeMillis() - iT > 6000){
-                telemetry.add("Failsafe activated ", counter);
+            if (System.currentTimeMillis() - iT > 2000){
+                //telemetry.add("Failsafe activated ");
                 break;
             }
             
@@ -112,11 +112,12 @@ public class Ducks_Red extends LinearOpMode {
         dir.update();
         
         //rotate in place to do janky adjustments
-        dir.rotateAtDegrees(-45);
+        dir.rotateAtDegree(-45);
         dir.update();
+        sleep(500);
         dir.setPower(-0.1);
         dir.update();
-        sleep(400);
+        sleep(1000);
         dir.setPower(0);
         dir.update();
         
@@ -140,7 +141,7 @@ public class Ducks_Red extends LinearOpMode {
         if (location == duckLocations.bottom) placeBlock(bottom, lift, bucket);
         else if (location == duckLocations.middle) placeBlock(middle, lift, bucket);
         else if (location == duckLocations.top) placeBlock(top, lift, bucket);
-        
+        /*
         dir.pointTowardsDegree(-90);
         dir.update();
         sleep(500);
@@ -159,7 +160,7 @@ public class Ducks_Red extends LinearOpMode {
         dir.setPower(0);
         dir.pointTowardsDegree(0);
         dir.update();
-        
+        */
     }
 
     private void placeBlock(Double[] instructions, DcMotor lift, CRServo bucket) {
