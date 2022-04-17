@@ -104,8 +104,10 @@ def calibrate_aruco(board, aruco_dict):
         None, 
         None 
     )
-    return corners, ids, num_detected_markers, board, img_gray.shape
+    return ret, mtx, dist, rvecs, tvecs
 
-#The actual execution, rvecs and tvecs are what are used for calibration
+#The actual execution of the methods
 board, aruco_dict = create_ArUco_board_format()
 ret, mtx, dist, rvecs, tvecs = calibrate_aruco(board, aruco_dict)
+print(mtx) #Camera Matrix
+print(dist) #Distortion Coefficients
