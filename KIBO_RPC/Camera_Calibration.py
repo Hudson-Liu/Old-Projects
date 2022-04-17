@@ -11,6 +11,8 @@ Run calibration only after Astrobee is at Target 1
 import cv2
 import cv2.aruco as aruco
 import numpy as np
+import glob
+import os
 
 num_markers_row = 2 #number of rows
 num_markers_column = 2 #numbers of columns
@@ -28,26 +30,27 @@ marker_separation_x = dist_between_centers_x - side_length
 print(marker_separation)
 print(marker_separation_x)
     
-def calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_separation, marker_separation_x):
-    """Calibrates Camera Using ArUco Tags"""
-    
-    aruco_dict = aruco.Dictionary_get(aruco.DICT_5X5_250)
-    arucoParams = aruco.DetectorParameters_create()
-    
-    tag_corners = []
-    sep_array_y = [0, marker_separation + side_length, marker_separation + side_length, 0]
-    sep_array_x = [0, 0, marker_separation_x + side_length, marker_separation_x + side_length]
-    for i in range(num_markers_column*num_markers_row):
-        top_left = np.array([sep_array_x[i], side_length + sep_array_y[i], 0], dtype = np.float32)
-        top_right = np.array([side_length + sep_array_x[i], side_length + sep_array_y[i], 0], dtype = np.float32)
-        bottom_right = np.array([side_length + sep_array_x[i], sep_array_y[i], 0], dtype = np.float32)
-        bottom_left = np.array([sep_array_x[i], sep_array_y[i], 0], dtype = np.float32)
-        tag_corners.append(np.array([top_left, top_right, bottom_right, bottom_left]))
-    
-    board_ids = np.array( [[0],[1],[2],[3]], dtype=np.int32)
-    
-    board = aruco.Board_create(tag_corners, aruco_dict, board_ids)
-    
+#def calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_separation, marker_separation_x):
+"""Calibrates Camera Using ArUco Tags"""
+
+aruco_dict = aruco.Dictionary_get(aruco.DICT_5X5_250)
+arucoParams = aruco.DetectorParameters_create()
+
+#creates custom aruco Board type object
+tag_corners = []
+sep_array_y = [0, marker_separation + side_length, marker_separation + side_length, 0]
+sep_array_x = [0, 0, marker_separation_x + side_length, marker_separation_x + side_length]
+for i in range(num_markers_column*num_markers_row):
+    top_left = np.array([sep_array_x[i], side_length + sep_array_y[i], 0], dtype = np.float32)
+    top_right = np.array([side_length + sep_array_x[i], side_length + sep_array_y[i], 0], dtype = np.float32)
+    bottom_right = np.array([side_length + sep_array_x[i], sep_array_y[i], 0], dtype = np.float32)
+    bottom_left = np.array([sep_array_x[i], sep_array_y[i], 0], dtype = np.float32)
+    tag_corners.append(np.array([top_left, top_right, bottom_right, bottom_left]))
+
+board_ids = np.array( [[0],[1],[2],[3]], dtype=np.int32)
+
+board = aruco.Board_create(tag_corners, aruco_dict, board_ids)
+
 # =============================================================================
 #     board = aruco.GridBoard_create(
 #         num_markers_column, 
@@ -58,12 +61,20 @@ def calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_sep
 #     )
 #     board.draw((1920, 1080))
 # =============================================================================
-    
-    # Find the ArUco markers inside target image
-    image = cv2.imread(r"D:\Downloads\target_1.png")
+
+# Find the ArUco markers inside target image
+cwd = os.getcwd()
+path = r"\Calibration_Images"
+os.chdir(cwd + path)
+files = glob.glob('*.{}'.format("jpg"))
+
+all_corners = np.array([])
+all_ids = np.array([])
+num_detected_markers = []
+for file in files:
+    image = cv2.imread(file)
     img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    #cv2.imshow("obama", img_gray)
+    cv2.imshow("obama", img_gray)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     
@@ -72,21 +83,29 @@ def calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_sep
         aruco_dict, 
         parameters=arucoParams
     )
-    return corners, ids, rejected
-    """
-    # Actual calibration
-    ret, mtx, dist, rvecs, tvecs = aruco.calibrateCameraAruco(corners, 
-        ids, 
-        num_markers_row*num_markers_column, 
-        board, 
-        img_gray.shape, 
-        None, 
-        None 
-    )
-    return [ret, mtx, dist, rvecs, tvecs]
-    """
+    if np.size(all_corners) == 0:
+        all_corners = corners
+        all_ids = ids
+    else:
+        all_corners = np.append(all_corners, corners, axis=0)
+        all_ids = np.append(all_ids, ids, axis=0)
+    num_detected_markers.append(len(ids))
+    
+num_detected_markers = np.array(num_detected_markers)
+# Actual calibration
+ret, mtx, dist, rvecs, tvecs = aruco.calibrateCameraAruco(
+    corners, 
+    ids, 
+    num_detected_markers, 
+    board, 
+    img_gray.shape, 
+    None, 
+    None 
+)
+#return ret, mtx, dist, rvecs, tvecs
+    
 
-corners, ids, rejected = calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_separation)
+#ret, mtx, dist, rvecs, tvecs = calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_separation, marker_separation_x)
 #tag_corners = calibrate_aruco(num_markers_row, num_markers_column, side_length, marker_separation, marker_separation_x)
 
 # =============================================================================
