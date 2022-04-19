@@ -60,7 +60,7 @@ def calibrate_aruco(board, aruco_dict):
     cwd = os.getcwd()
     path = r"\Calibration_Images"
     os.chdir(cwd + path)
-    files = glob.glob('*.{}'.format("jpg"))
+    files = glob.glob('*.{}'.format("png"))
     
     arucoParams = aruco.DetectorParameters_create()
     
@@ -68,6 +68,7 @@ def calibrate_aruco(board, aruco_dict):
     all_corners = np.array([])
     all_ids = np.array([])
     num_detected_markers = []
+    counter = 0
     for file in files:
         #Open File
         image = cv2.imread(file)
@@ -84,16 +85,29 @@ def calibrate_aruco(board, aruco_dict):
         )
         
         #Append marker data
-        if np.size(all_corners) == 0:
+        if np.size(all_corners) == 0 and np.size(ids) != 0 and np.size(corners) != 0:
+            print("Frame " + str(counter) + " has an ArUco tag")
             all_corners = corners
             all_ids = ids
-        else:
+        elif np.size(ids) != 0 and np.size(corners) != 0:
+            print("Frame " + str(counter) + " has an ArUco tag")
             all_corners = np.append(all_corners, corners, axis=0)
             all_ids = np.append(all_ids, ids, axis=0)
-        num_detected_markers.append(len(ids))
+        else:
+            print("Every frame needs to have a detectable ArUco tag. Frame " +
+                  str(counter) + " does not have a detectable ArUco tag. " + 
+                  "Please remove it from the dataset. " +
+                  "The program will continue, but the calibration will not work.")
+        
+        if ids is None:
+            num_detected_markers.append(0)
+        else:
+            num_detected_markers.append(len(ids)) 
+        
+        counter += 1
         
     num_detected_markers = np.array(num_detected_markers)
-
+    
     #Uses markers to calibrate camera
     ret, mtx, dist, rvecs, tvecs = aruco.calibrateCameraAruco(
         all_corners, 
@@ -111,3 +125,11 @@ board, aruco_dict = create_ArUco_board_format()
 ret, mtx, dist, rvecs, tvecs = calibrate_aruco(board, aruco_dict)
 print(mtx) #Camera Matrix
 print(dist) #Distortion Coefficients
+
+#saves calibration stuff
+os.chdir("..")
+path = "calibration_aruco.yml"
+cv_file = cv2.FileStorage(path, cv2.FILE_STORAGE_WRITE)
+cv_file.write('K', mtx)
+cv_file.write('D', dist)
+cv_file.release()
