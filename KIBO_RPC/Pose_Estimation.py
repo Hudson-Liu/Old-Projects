@@ -3,6 +3,7 @@
 Created on Fri Apr 15 08:26:32 2022
 
 https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html
+https://aliyasineser.medium.com/aruco-marker-tracking-with-opencv-8cb844c26628
 Find distortion by using ar tags themselves
  
 @author: hudso
@@ -13,6 +14,12 @@ import cv2
 import cv2.aruco as aruco
 
 cap = cv2.VideoCapture(0)
+
+path = r"\Camera_Calibration\calibration_aruco.yml"
+cv_file = cv2.FileStorage(path, cv2.FILE_STORAGE_READ)
+mtx = cv_file.getNode('K').mat()
+dist = cv_file.getNode('D').mat()
+cv_file.release()
 
 #Everything is in centimeters
 def motion_tracking(mtx, dist):
@@ -55,3 +62,5 @@ def motion_tracking(mtx, dist):
         cv2.imshow('frame', frame)
     cap.release()
     cv2.destroyAllWindows()
+
+motion_tracking(mtx, dist)
