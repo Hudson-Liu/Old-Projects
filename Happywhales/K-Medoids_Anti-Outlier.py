@@ -51,7 +51,7 @@ class ModifiedKMedoids:
                 break
 
             #Add back the removed outliers
-            if i != 0: #janky fix but it works
+            if i != 0:
                 if np.size(removed, axis=0) != 0:
                     history.append([array, centroids, removed, medoids])
                     array = np.append(array, removed, axis = 0)
@@ -84,7 +84,7 @@ class ModifiedKMedoids:
                 array = np.delete(array, remove[e], axis=0)
             removed = np.array(removed)
 
-        #Perform visualizations [finish this later im lazy]
+        #Perform visualizations
         if dimensions in (2, 3): #If it's 2 or 3 dimensional
             images = []
             custom_font = ImageFont.truetype("arial.ttf", 24)
@@ -191,6 +191,21 @@ class ModifiedKMedoids:
         ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=3)
         plt.show()
         return fig
+
+#executes the kmedoids class on a 2d randomly generated array for demo purposes
+while True:
+    try:
+        n_dimensions = int(input("How many dimensions would you like? (Visualization works only with 2 or 3 dimensions) "))
+        n_datapoints = int(input("How many datapoints would you like to cluster? ")) #2000
+        n_clusters = int(input("How many clusters would you like to create? ")) #8
+        n_iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
+        n_percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
+        break
+    except ValueError:
+        print("The value inputted was invalid, all inputs must be integers.")
+
+array_1 = np.random.rand(n_datapoints, n_dimensions)
+trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile)
 
 #executes the kmedoids class on a 2d randomly generated array for demo purposes
 while True:
