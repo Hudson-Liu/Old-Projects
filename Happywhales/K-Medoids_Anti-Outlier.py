@@ -16,6 +16,7 @@ import math
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pl
 import PIL
+import time
 
 class ModifiedKMedoids:
     """A standard K-Medoid Algorithm, except it runs K-Medoids for multiple iterations,
@@ -23,7 +24,7 @@ class ModifiedKMedoids:
     k_medoids object, that can then be used for predictions."""
 
     @staticmethod
-    def k_medoids(array, num_clusters, iterations, percentile):
+    def k_medoids(array, num_clusters, iterations, percentile, num_times):
         """Returns trained kmedoids model"""
 
         removed = []
@@ -103,7 +104,8 @@ class ModifiedKMedoids:
                 images.append(image)
             if len(images) > 0:
                 first_img = images[0]
-                first_img.save(fp="clustering.gif", format="GIF", append_images=images, save_all=True, duration=300, loop=0)
+                file_name = "clustering_" + str(num_times) + ".gif"
+                first_img.save(fp=file_name, format="GIF", append_images=images, save_all=True, duration=300, loop=0)
             else:
                 print("No images were able to be created, try running the program again with new inputs.")
         
@@ -192,32 +194,65 @@ class ModifiedKMedoids:
         plt.show()
         return fig
 
-#executes the kmedoids class on a 2d randomly generated array for demo purposes
-while True:
-    try:
-        n_dimensions = int(input("How many dimensions would you like? (Visualization works only with 2 or 3 dimensions) "))
-        n_datapoints = int(input("How many datapoints would you like to cluster? ")) #2000
-        n_clusters = int(input("How many clusters would you like to create? ")) #8
-        n_iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
-        n_percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
-        break
-    except ValueError:
-        print("The value inputted was invalid, all inputs must be integers.")
+np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)                 
+
+#Demos the kmedoids algoritm on a 2d randomly generated array for demo purposes
+print("The following will demonstrate a few example inputs to the KMedoids Algorithm")
+time.sleep(1)
+print("The datapoints will be 3-dimensional")
+n_dimensions = 3
+time.sleep(0.2)
+print("There will be 500 datapoints")
+n_datapoints = 500
+time.sleep(0.2)
+print("4 Clusters will be created")
+n_clusters = 4
+time.sleep(0.2)
+print("The algorithm will run for 5 iterations")
+n_iterations = 5
+time.sleep(0.2)
+print("The 90th percentile will be outliers")
+n_percentile = 0.9
+time.sleep(0.2)
 
 array_1 = np.random.rand(n_datapoints, n_dimensions)
-trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile)
+trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile, "example")
 
-#executes the kmedoids class on a 2d randomly generated array for demo purposes
+#Runs the KMedoids program according to user-set parameters
+run_again = True
+counter = 0
 while True:
-    try:
-        n_dimensions = int(input("How many dimensions would you like? (Visualization works only with 2 or 3 dimensions) "))
-        n_datapoints = int(input("How many datapoints would you like to cluster? ")) #2000
-        n_clusters = int(input("How many clusters would you like to create? ")) #8
-        n_iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
-        n_percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
-        break
-    except ValueError:
-        print("The value inputted was invalid, all inputs must be integers.")
+    #Gives User the option to quit the program
+    while True:
+        run_again_input = input("Would you like to run the KMedoids algorithm? (y/n)")
+        if run_again_input == "yes" or run_again_input == "Yes" or run_again_input == "y" or run_again_input == "Y":
+            run_again = True
+            break
+        elif run_again_input == "no" or run_again_input == "No" or run_again_input == "n" or run_again_input == "N":
+            run_again = False
+            break
+        else:
+            print("That was an invalid entry, please try again")
 
-array_1 = np.random.rand(n_datapoints, n_dimensions)
-trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile)
+    #Leaves the loop if user chooses to
+    if not run_again:
+        break
+    
+    #Asks for inputs until they're valid
+    while True:
+        try:
+            n_dimensions = int(input("How many dimensions would you like? (Visualization works only with 2 or 3 dimensions) "))
+            n_datapoints = int(input("How many datapoints would you like to cluster? ")) #2000
+            n_clusters = int(input("How many clusters would you like to create? ")) #8
+            n_iterations = int(input("How many iterations would you like to run the outlier algorithm for? ")) #30
+            n_percentile = float(input("What percentile (Out of 100) should the outliers be in? "))/100.0 #90
+            break
+        except ValueError:
+            print("The value inputted was invalid, all inputs must be integers.")
+    
+    #Runs KMedoids Model
+    array_1 = np.random.rand(n_datapoints, n_dimensions)
+    trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile, counter)
+    
+    #Keep tracks of how many times the algorithm has been run
+    counter += 1
