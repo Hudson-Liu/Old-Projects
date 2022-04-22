@@ -193,30 +193,39 @@ class ModifiedKMedoids:
         ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=3)
         plt.show()
         return fig
+    
+    @staticmethod
+    def demo():
+        """Demos the KMedoids Algorithm in 3D to showcase proper input parameters"""
+        
+        #Sets variables and explains them
+        print("The following will demonstrate a few example inputs to the KMedoids Algorithm\n")
+        time.sleep(1)
+        print("-The datapoints will be 3-dimensional")
+        n_dimensions = 3
+        time.sleep(0.2)
+        print("-There will be 500 datapoints")
+        n_datapoints = 500
+        time.sleep(0.2)
+        print("-4 Clusters will be created")
+        n_clusters = 4
+        time.sleep(0.2)
+        print("-The algorithm will run for 5 iterations")
+        n_iterations = 5
+        time.sleep(0.2)
+        print("-The 90th percentile will be outliers")
+        n_percentile = 0.9
+        time.sleep(0.2)
+        
+        #Runs KMedoids Model
+        array_1 = np.random.rand(n_datapoints, n_dimensions)
+        ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile, "example")
 
+#Stops deprecation warnings from appearing in console
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)                 
 
-#Demos the kmedoids algoritm on a 2d randomly generated array for demo purposes
-print("The following will demonstrate a few example inputs to the KMedoids Algorithm")
-time.sleep(1)
-print("The datapoints will be 3-dimensional")
-n_dimensions = 3
-time.sleep(0.2)
-print("There will be 500 datapoints")
-n_datapoints = 500
-time.sleep(0.2)
-print("4 Clusters will be created")
-n_clusters = 4
-time.sleep(0.2)
-print("The algorithm will run for 5 iterations")
-n_iterations = 5
-time.sleep(0.2)
-print("The 90th percentile will be outliers")
-n_percentile = 0.9
-time.sleep(0.2)
-
-array_1 = np.random.rand(n_datapoints, n_dimensions)
-trained_model = ModifiedKMedoids.k_medoids(array_1, n_clusters, n_iterations, n_percentile, "example")
+#Runs KMedoids Demo
+ModifiedKMedoids.demo()
 
 #Runs the KMedoids program according to user-set parameters
 run_again = True
