@@ -6,7 +6,7 @@ A standard K-Medoid Algorithm, except it runs K-Medoids for multiple iterations,
 removing outliers between each iteration. The function returns a trained
 k_medoids object, that can then be used for predictions.
 
-@author: hudso
+@author: [REMOVED]
 """
 
 from sklearn_extra.cluster import KMedoids
@@ -195,14 +195,11 @@ class ModifiedKMedoids:
         return fig
     
     @staticmethod
-    def demo():
+    def demo(n_dimensions):
         """Demos the KMedoids Algorithm in 3D to showcase proper input parameters"""
         
         #Sets variables and explains them
-        print("The following will demonstrate a few example inputs to the KMedoids Algorithm\n")
-        time.sleep(1)
-        print("-The datapoints will be 3-dimensional")
-        n_dimensions = 3
+        print("-The datapoints will be " + str(n_dimensions) + "-dimensional")
         time.sleep(0.2)
         print("-There will be 500 datapoints")
         n_datapoints = 500
@@ -213,7 +210,7 @@ class ModifiedKMedoids:
         print("-The algorithm will run for 5 iterations")
         n_iterations = 5
         time.sleep(0.2)
-        print("-The 90th percentile will be outliers")
+        print("-The 90th percentile will be outliers\n")
         n_percentile = 0.9
         time.sleep(0.2)
         
@@ -225,7 +222,11 @@ class ModifiedKMedoids:
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)                 
 
 #Runs KMedoids Demo
-ModifiedKMedoids.demo()
+print("The following will demonstrate 3 and 4 Dimensional clustering using the KMedoids Algorithm\n")
+time.sleep(1)
+
+ModifiedKMedoids.demo(3)
+ModifiedKMedoids.demo(4)
 
 #Runs the KMedoids program according to user-set parameters
 run_again = True
