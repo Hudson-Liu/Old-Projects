@@ -9,14 +9,14 @@ k_medoids object, that can then be used for predictions.
 @author: [REMOVED]
 """
 
-from sklearn_extra.cluster import KMedoids
-from PIL import ImageDraw, ImageFont
-import numpy as np
-import math
-import matplotlib.pyplot as plt
-import matplotlib.pylab as pl
-import PIL
-import time
+from sklearn_extra.cluster import KMedoids #This library was written by scikit-learn, this is their website: https://scikit-learn.org/stable/
+from PIL import ImageDraw, ImageFont #This library was written by Pillow, this is their website: https://pillow.readthedocs.io/en/stable/
+import numpy as np #This library was written by NumPy, this is their website: https://numpy.org/
+import math #This library is built into Python
+import matplotlib.pyplot as plt #This library was written by Matplotlib, this is their website: https://matplotlib.org/
+import matplotlib.pylab as pl #This library was also written by Matplotlib
+import PIL #This library was also written by Pillow
+import time #This library is built into Python
 
 class ModifiedKMedoids:
     """A standard K-Medoid Algorithm, except it runs K-Medoids for multiple iterations,
