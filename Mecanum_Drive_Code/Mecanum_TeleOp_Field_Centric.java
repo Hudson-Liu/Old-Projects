@@ -52,8 +52,6 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
         imu = hardwareMap.get(BNO055IMU.class, "imu"); 
         imu.initialize(parameters);
         
-        // init values
-        this.setMovement(0.0, 0.0, 0.0);
       
         waitForStart();
         double rotateAngle = 0;
@@ -63,22 +61,22 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
         
         while (opModeIsActive())
         {
+            // init values
+            this.setMovement(0.0, 0.0, 0.0);
             
             // gamepad 1
             telemetry.addData("ls", gamepad1.left_stick_x);
             telemetry.addData("rs", gamepad1.left_stick_y);
             telemetry.addData("l2", gamepad1.right_stick_x);
-            //telemetry.addData("m3", t4);
+            telemetry.addData("m3", t4);
             telemetry.update();
-            joystickAngle = this.findJoystickAngle(-1*gamepad1.left_stick_y, gamepad1.left_stick_x); //remove
-            /*
+          
             //field centric stuff
             Orientation orientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
             orientationAngle = orientation.firstAngle;
             telemetry.addData("Orientation: ", Double.toString(orientationAngle));
           
-            joystickAngle = this.findJoystickAngle(gamepad1.left_stick_y, -1*gamepad1.left_stick_x); //remove
-            
+            joystickAngle = this.findJoystickAngle(gamepad1.left_stick_y, -1*gamepad1.left_stick_x);
             if (joystickAngle > orientationAngle){
                 rotateAngle = joystickAngle - orientationAngle;
             }
@@ -93,42 +91,27 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
                 telemetry.addData("1", "I don't know what you did or how you did this, but I hate you");
             }
             
-            telemetry.addData("Rotation angle", rotateAngle);
-            */
             speed = Math.sqrt(Math.pow(gamepad1.left_stick_y, 2) + Math.pow(gamepad1.left_stick_x, 2));
-            this.setMovement(speed, joystickAngle, gamepad1.right_stick_x);//should be rotationAngle
-            telemetry.addData("joystick angle", joystickAngle);
+            this.setMovement(speed, rotateAngle, gamepad1.right_stick_x);
             
             // update motor power
-            //m0.setPower(t1);
-            //m1.setPower(t2);
-            //m2.setPower(t3);
-            //m3.setPower(t4);
+            m0.setPower(t1);
+            m1.setPower(t2);
+            m2.setPower(t3);
+            m3.setPower(t4);
             
             idle();
         }
     }
   
     private double findJoystickAngle(double V_v, double V_h){
-        double yes = Math.toDegrees(Math.atan(V_v/V_h));
-        if (gamepad1.left_stick_x >= 0){
-            if (gamepad1.left_stick_y >= 0){
-                yes = yes - 180;
-            }
-            else{
-                yes = yes - 90;
-            }
-        }
-        return yes;
+        return Math.atan(V_v/V_h); 
     }
   
     private void setMovement(double speed, double rad, double r)
     {
         double V_h = speed*Math.sin(rad);
         double V_v = speed*Math.cos(rad);
-        
-        telemetry.addData("v_h", V_h);
-        telemetry.addData("v_v", V_v);
         double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
         
         t1 = (-1*(V_v-V_h)-r)/denominator;//Back Left
