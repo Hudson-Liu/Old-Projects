@@ -105,18 +105,20 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
     }
   
     private double findJoystickAngle(double V_v, double V_h){
-        return Math.atan(V_v/V_h); 
+        return Math.toDegrees(Math.atan(V_v/V_h)); 
     }
   
-    private void setMovement(double speed, double rad, double r)
+    private void setMovement(double speed, double angle, double r)
     {
-        double V_h = speed*Math.sin(rad);
-        double V_v = speed*Math.cos(rad);
+        double rad = Math.toRadians(angle);
+		
+        double V_v = speed*Math.sin(rad);
+        double V_h = speed*Math.cos(rad);
         double denominator = Math.max(Math.abs(V_v) + Math.abs(V_h) + Math.abs(r), 1);
-        
-        t1 = (-1*(V_v-V_h)-r)/denominator;//Back Left
-        t2 = ((V_v-V_h)-r)/denominator;//Front Right
-        t3 = (-1*(V_h+V_v)-r)/denominator;//Back Right
-        t4 = ((V_h+V_v)-r)/denominator;//Front Left
+
+        double t1 = ((V_v-V_h)-r)/denominator;//Back Left
+        double t2 = ((V_v-V_h)-r)/denominator;//Front Right
+        double t3 = ((V_h+V_v)-r)/denominator;//Back Right
+        double t4 = ((V_h+V_v)-r)/denominator;//Front Left
     }
 }
