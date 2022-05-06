@@ -75,8 +75,26 @@ public class Mecanum_TeleOp_Field_Centric extends LinearOpMode {
             Orientation orientation = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
             orientationAngle = orientation.firstAngle;
             telemetry.addData("Orientation: ", Double.toString(orientationAngle));
-          
-            joystickAngle = this.findJoystickAngle(gamepad1.left_stick_y, -1*gamepad1.left_stick_x);
+            
+	    //find angle of joystick
+	    double a = gamepad1.left_stick_x; //x
+	    double b = gamepad1.left_stick_y; //y
+	    double yes = 0;
+	    if (a <= 0 && b >= 0){
+		yes = -1*this.findJoystickAngle(b,a) + 90;
+	    }
+	    else if (a >= 0 && b >= 0){
+		yes = 180-this.findJoystickAngle(b,a);
+	    }
+	    else if (a >= 0 && b <= 0){
+		yes = 180+(-1*this.findJoystickAngle(b,a));
+	    }
+	    else {
+		yes = 360-this.findJoystickAngle(b,a);
+	    }
+	    double joystickAngle = (270+yes)%360;
+            
+	    //find rotate angle
             if (joystickAngle > orientationAngle){
                 rotateAngle = joystickAngle - orientationAngle;
             }
