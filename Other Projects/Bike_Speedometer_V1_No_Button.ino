@@ -35,6 +35,7 @@ uint8_t numbersDecimal[][1] = //same thing except in binary and added 0x80 to tu
   {0xFF}, //11111111
   {0xFC}, //11111100
   {0xBF}, //10111111
+  {0x00}, //00000000
 };
 
 void setup() {
@@ -63,9 +64,14 @@ class Display{
       else {
         display.setSegments(numbers[9], 1, 2);
       }
+      
       if (tens != 0){
         display.setSegments(numbers[tens-1], 1, 3);
       }
+      else{
+        display.setSegments(numbersDecimal[10], 1, 3);
+      }
+      
       if (tenths != 0){
         display.setSegments(numbersDecimal[tenths-1], 1, 1);
       }
@@ -76,7 +82,7 @@ class Display{
     
     void findElapsedTime(){ //in seconds (if I did all the stupid calculations corectly which, lets be honest, I probably didn't)
       float currentTime;
-      currentTime = millis()/1000;
+      currentTime = millis()/1000.0;
       elapsedTime = (currentTime - totalPauseTime) - startOfProgram;
     }
 };
@@ -84,8 +90,9 @@ class Display{
 class Speedometer
 {
   private:
-    const int wheelSize = 29;
-    const float mpHalfRotate = ((((float)wheelSize/2.0)*3.14)/2.0)/63360.0; //miles per half rotation of wheel, or ~0.000359 mile
+    //const float wheelSize = 29.0;
+    //const float mpHalfRotate = ((wheelSize*3.14)/2.0)/63360.0; //miles per half rotation of wheel, or ~0.000359 mile
+    const float mpHalfRotate = .00071859217;
     float mph = 0;
     float lastPass = 0;
     float currentPass = 0;
@@ -106,18 +113,18 @@ class Speedometer
     }
     
     float timeTrack(){
-      float currentTime = millis()/1000;
+      float currentTime = millis()/1000.0; //seconds
       return currentTime;
     }
     
     void readDSensor(){
-      currentPass = timeTrack();
-      if (digitalRead(digitalPin) == HIGH and not(prevOn)){ //only activates if it just was on
+      if (analogRead(analogPin) >= 825 and not(prevOn)){ //only activates if it just was on
+        currentPass = timeTrack();
         lastPass = currentPass;
         prevOn = true;
         digitalWrite(LED_BUILTIN, LOW); //seeeduino XIAO led is inversed
       }
-      else if (digitalRead(digitalPin) == LOW && prevOn) {
+      else if (analogRead(analogPin) <= 825 && prevOn) {
         prevOn = false;
         digitalWrite(LED_BUILTIN, HIGH);
       }
@@ -126,17 +133,18 @@ class Speedometer
     }
     
     void processData(){
-      if (deltaPass >= 0.05){ //0.05s must pass before to guarantee no double readings, max speed is technically (INSERT NUMBER CUZ IM TOO TIRED AND LAZY ITS 21:43 RN) mph
-        mph = (mpHalfRotate)/(deltaPass/3600.0);
-      }
+      mph = mpHalfRotate/(deltaPass/3600.0); //seconds to hours
     }
 };
 
 Speedometer mySpdmtr (DGTL, ANLG);
 Display myDisp;
-
+//float counter = 0.0;
 void loop() {
   // put your main code here, to run repeatedly:
   mySpdmtr.readDSensor();
   myDisp.displayStuff(mySpdmtr.getMPH());
+  //myDisp.displayStuff(counter += 0.1);
+
+  //Serial.println(analogRead(A3));
 }
