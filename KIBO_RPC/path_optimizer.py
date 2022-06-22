@@ -8,6 +8,7 @@ import numpy as np
 import random
 import time
 from tqdm import tqdm, trange
+import itertools
 
 def detectCollision(loc_astrobee, r): #detects if astrobee's location is within KOZ
     koz_1 = [[9.8585,-9.45,4.82],[12.0085,-8.5,4.8706]]
@@ -122,33 +123,6 @@ def scatterPlotList(ax, points):
         z.append(point[2])
     ax.scatter3D(x, y, z, cmap='Greens')
     
-def generatePath(point1, point2, goal_reach, reach, r):
-    unsuccessful = True
-    fails = 0
-    #Keeps trying until it's able to create a path under 20000 datapoints
-    while unsuccessful:
-        path = [point1]
-        
-        #Keeps randomly iterating until it reaches the final point
-        #while distanceToPoint(path[i], point2) >= goal_reach:
-        for i in trange(50000):
-            invalid = True
-            while invalid: #Keeps generating possible new waypoints until it finds a valid one
-                new_point = generateRandomPoint(path[i], reach)
-                invalid = detectCollision(new_point, r)
-            path.append(new_point)
-            if distanceToPoint(path[i], point2) <= goal_reach: #this has to run in order for the path to be successful
-                unsuccessful = False
-                break
-            i += 1
-        
-        #Prints this message every time the loop repeats
-        if unsuccessful:
-            fails += 1
-            print("\nFAILURE " + str(fails) + ": Path exceeded iteration number, attempting to generate another path...", flush=True)
-            
-    return path
-
 def distanceToPoint(point1, point2):
     sum = 0
     n_dim = 3
@@ -157,31 +131,70 @@ def distanceToPoint(point1, point2):
     distance = math.sqrt(sum)
     return distance
 
-def generateRandomPoint(loc_astrobee, reach): #reach is how far the point is from the original point
-    #get random coordinates using gaussian distribution
-    mu = 0
-    sigma = 10
-    coord = [0.0, 0.0, 0.0]
-    for index in range(len(coord)):
-        coord[index] = random.gauss(mu, sigma)
-    
-    #Find the normalization factor thingy
-    temp = math.sqrt(coord[0]**2+coord[1]**2+coord[2]**2)
-    if temp == 0:
-        print("The normalization divisor somehow equaled zero, shit's boutta go down")
-        normalizer = 1
-    else:
-        normalizer = 1/temp
-    
-    #Normalize all the coordinates
-    for index in range(len(coord)):
-        coord[index] = coord[index] * normalizer * reach
-    
-    #Add current positional value
-    for index in range(len(loc_astrobee)):
-        coord[index] += loc_astrobee[index]
+def generatePath(loc_astrobee, point2, jump_dist): #jump_dist is how far the astrobee can move per iteration of A*, this is essentially a measure of resolution
+    MARGIN = 0.001 #margin of error for float calculations
+    open = [[[]]] #[[[coordinate], f_cost]]
+    closed = []
+    g_cost = 0
+    h_cost = 0
+    f_cost = 0
+
+    open[0][0] = loc_astrobee #first currentNode is startNote of astrobee
+
+    while len(open) != 0: #while there are still more nodes to check
+        # Finds the index of the best open node with the least f_cost
+        best_f = open[0][0]
+        best_index = 0
+        for index in range(len(open)):
+            if open[index][1] <= best_f: #point 1 is the f_cost of the point
+                best_f = open[index][1]
+                best_index = index
         
-    return coord
+        #Appends this node to closed and removes it from open
+        selected_node = open[best_index]
+        open.pop(best_index)
+        closed.append(selected_node)
+
+        #Tests if selected node is goal
+        if pointsAreEqual(selected_node, point2, MARGIN):
+            #insert shit
+            print("placeholder for backtracing code")
+        
+        #Generate children of current node (neighbors of current node)
+        neighbors = generateNeighbors(selected_node[0], jump_dist)
+        for child in neighbors:
+            #Calculates g, h, and f cost
+            child_g = g_cost + distanceToPoint(selected_node[0], child) 
+            child_h = distanceToPoint(selected_node[0], point2) 
+            child_f = child_g + child_h
+
+            #Check if child is on closed
+            for point in closed:
+                if pointsAreEqual(child, point, MARGIN): #add if child g is better than past g
+                    continue #Skip the point and move onto the next one
+
+            #Check if the child is on open already
+            
+            #Appends child to open
+            open.append([child, child_f]) #both the coordinates and the f_cost
+
+
+def pointsAreEqual(point1, point2, margin): #this accomodates for the intrinsic inaccuracy of floats
+    for i in range(len(point1)):
+        if (abs(point1[i] - point2[i]) >= margin): #If a single of the x, y, or z coordinates are off then return false
+            return False
+    return True
+
+def generateNeighbors(current_node, jump_dist):
+    neighbors = []
+    
+    #positive jump dist
+    translator = list(itertools.product([0, jump_dist, -1*jump_dist], repeat=3))[1:] #the slice removes the first entry which is just empty
+    for translate in translator:
+        neighbors.append([current_node[0] + translate[0], #x
+                          current_node[1] + translate[1], #y
+                          current_node[2] + translate[2]])#z
+    return neighbors
 
 loc_astrobee = [12.0067,-8.89819,5.87385]
 point_1 = [10.71, -7.5-0.2725783682, 4.48]
@@ -199,14 +212,19 @@ fig = plt.figure()
 axis = fig.add_subplot(111, projection='3d')
 
 #visualizing everything
+"""
 scatterPlotPoints(axis, point_1, point_2, loc_astrobee)
 plotKOZ(axis)
 plotAstrobee(axis, loc_astrobee, r)
+"""
 
 #TODO: REMOVE THIS, purely for debugging purposes
 #temp = []
 #for i in tqdm(range(1000), desc="generating random points"):
 #    temp.append(generateRandomPoint(loc_astrobee, 5))#5 is extreme, the real value is ~0.01, this is just for demo purposes
 #scatterPlotList(axis, temp)
-path = generatePath(point_1, point_2, 0.2, 0.01, r)
-scatterPlotList(axis, path)
+
+#TODO: REMOVE THIS
+#Testing the generateneighbors function
+#neighbors = generateNeighbors(point_1, 1)
+#scatterPlotList(axis, neighbors)
