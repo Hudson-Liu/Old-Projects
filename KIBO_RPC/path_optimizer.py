@@ -1,13 +1,11 @@
 #This code is mostly physical labor of smashing my fingers against the keyboard and very little actual programming
-#TODO: Make this code not bad
+#TODO: Make this code not physically hurt my eyes
 
 import math
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 import numpy as np
-import random
-import time
-from tqdm import tqdm, trange
+from tqdm import trange
 import itertools
 
 def detectCollision(loc_astrobee, r): #detects if astrobee's location is within KOZ
@@ -58,7 +56,6 @@ def plotRectangle(c1, c2, ax):
     np_c = np.array(all_c)
     r = [-1, 1]
     X, Y = np.meshgrid(r, r)
-    print(np_c)
     ax.scatter3D(np_c[:, 0], np_c[:, 1], np_c[:, 2])
     verts = [[np_c[0],np_c[1],np_c[2],np_c[3]], #dear anyone with eyes
     [np_c[4],np_c[5],np_c[6],np_c[7]], #i apologize
@@ -131,53 +128,87 @@ def distanceToPoint(point1, point2):
     distance = math.sqrt(sum)
     return distance
 
-def generatePath(loc_astrobee, point2, jump_dist): #jump_dist is how far the astrobee can move per iteration of A*, this is essentially a measure of resolution
-    MARGIN = 0.001 #margin of error for float calculations
-    open = [[[]]] #[[[coordinate], f_cost]]
+#call help
+def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is how far the astrobee can move per iteration of A*, this is essentially a measure of resolution
+    MARGIN = jump_dist * 0.1
+    open_list = [[loc_astrobee,distanceToPoint(loc_astrobee, point2),0,[0,0,0],distanceToPoint(loc_astrobee, point2)]] #[[[coordinate], f_cost, g_cost, parent, h_cost]]
     closed = []
-    g_cost = 0
-    h_cost = 0
-    f_cost = 0
+    selected_node = []
 
-    open[0][0] = loc_astrobee #first currentNode is startNote of astrobee
-
-    while len(open) != 0: #while there are still more nodes to check
-        # Finds the index of the best open node with the least f_cost
-        best_f = open[0][0]
+    for _ in trange(iterations, desc="Iterations of A* Algorithm"):
+        # Finds the index of the best open_list node with the least f_cost
+        best_f = open_list[0][1]
         best_index = 0
-        for index in range(len(open)):
-            if open[index][1] <= best_f: #point 1 is the f_cost of the point
-                best_f = open[index][1]
+        for index in range(len(open_list)):
+            if open_list[index][1] <= best_f: #point 1 is the f_cost of the point
+                best_f = open_list[index][1]
                 best_index = index
         
-        #Appends this node to closed and removes it from open
-        selected_node = open[best_index]
-        open.pop(best_index)
+        #Appends this node to closed and removes it from open_list
+        selected_node = open_list[best_index]
+        open_list.pop(best_index)
         closed.append(selected_node)
 
         #Tests if selected node is goal
-        if pointsAreEqual(selected_node, point2, MARGIN):
-            #insert shit
-            print("placeholder for backtracing code")
-        
+        if pointsAreEqual(selected_node[0], point2, jump_dist):
+            break #if it has reached the goal, stop the algorithm
         #Generate children of current node (neighbors of current node)
         neighbors = generateNeighbors(selected_node[0], jump_dist)
         for child in neighbors:
+
             #Calculates g, h, and f cost
-            child_g = g_cost + distanceToPoint(selected_node[0], child) 
+            child_g = selected_node[2] + distanceToPoint(selected_node[0], child) 
             child_h = distanceToPoint(selected_node[0], point2) 
             child_f = child_g + child_h
 
+            #Check if child will collide with KOZ
+            if detectCollision(child, r):
+                continue
+
             #Check if child is on closed
             for point in closed:
-                if pointsAreEqual(child, point, MARGIN): #add if child g is better than past g
+                if pointsAreEqual(child, point[0], MARGIN):
                     continue #Skip the point and move onto the next one
 
-            #Check if the child is on open already
-            
-            #Appends child to open
-            open.append([child, child_f]) #both the coordinates and the f_cost
+            #Check if the child is on open_list already
+            remove_index = 0
+            remove = False
+            for index in range(len(open_list)):
+                if pointsAreEqual(child, open_list[index][0], MARGIN):
+                    if child_g <= open_list[index][2]: #If the new g cost is better than the previoius g cost, remove the old one so we can append the new one
+                        remove_index = index #THIS HAS TO BE THE LAST STATEMENT BEFFORE THE VARIABLE IS APPENDED
+                        remove = True
+                    else:
+                        continue
+            if remove:
+                open_list.pop(remove_index)
 
+            #Appends child to open_list
+            open_list.append([child, child_f, child_g, selected_node[0], child_h]) #both the coordinates and the f_cost
+   
+    #Find the closest waypoint to point2 and backtrace from there, since this will be the most successful waypoint so far
+    lowest_h = closed[0][4]
+    selected_node = closed[0]
+    i = 0
+    for point in closed:
+        if point[4] < lowest_h:
+            lowest_h = point[4]
+            selected_node = closed[i]
+        i+=1
+    path = backtracing(loc_astrobee, closed, selected_node, MARGIN)
+    return path
+
+def backtracing(loc_astrobee, closed, selected_node, MARGIN):
+    #Performs backtracing and appends list of parents toward final goal
+    path = []
+    while True: #For all the nodes of the path
+        for point in closed: #Find the current node's parent
+            if pointsAreEqual(point[0], selected_node[3], MARGIN):
+                selected_node = point
+                break
+        if pointsAreEqual(loc_astrobee, selected_node[0], MARGIN): #check if the parent is the starting node
+            return path
+        path.append(selected_node[0])
 
 def pointsAreEqual(point1, point2, margin): #this accomodates for the intrinsic inaccuracy of floats
     for i in range(len(point1)):
@@ -188,7 +219,6 @@ def pointsAreEqual(point1, point2, margin): #this accomodates for the intrinsic 
 def generateNeighbors(current_node, jump_dist):
     neighbors = []
     
-    #positive jump dist
     translator = list(itertools.product([0, jump_dist, -1*jump_dist], repeat=3))[1:] #the slice removes the first entry which is just empty
     for translate in translator:
         neighbors.append([current_node[0] + translate[0], #x
@@ -196,7 +226,7 @@ def generateNeighbors(current_node, jump_dist):
                           current_node[2] + translate[2]])#z
     return neighbors
 
-loc_astrobee = [12.0067,-8.89819,5.87385]
+loc_astrobee = [0,0,0]
 point_1 = [10.71, -7.5-0.2725783682, 4.48]
 point_2 = [11.2746-0.0713120911,-9.92284, 5.29881+0.1626665617]
 
@@ -212,19 +242,10 @@ fig = plt.figure()
 axis = fig.add_subplot(111, projection='3d')
 
 #visualizing everything
-"""
-scatterPlotPoints(axis, point_1, point_2, loc_astrobee)
+#scatterPlotPoints(axis, point_1, point_2, loc_astrobee)
 plotKOZ(axis)
-plotAstrobee(axis, loc_astrobee, r)
-"""
+#plotAstrobee(axis, loc_astrobee, r)
 
-#TODO: REMOVE THIS, purely for debugging purposes
-#temp = []
-#for i in tqdm(range(1000), desc="generating random points"):
-#    temp.append(generateRandomPoint(loc_astrobee, 5))#5 is extreme, the real value is ~0.01, this is just for demo purposes
-#scatterPlotList(axis, temp)
-
-#TODO: REMOVE THIS
-#Testing the generateneighbors function
-#neighbors = generateNeighbors(point_1, 1)
-#scatterPlotList(axis, neighbors)
+path = generatePath(point_1, point_2, 0.1, 10000, r)
+scatterPlotList(axis, path)
+plt.show()
