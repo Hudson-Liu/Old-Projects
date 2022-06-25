@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import trange
 import itertools
+import pickle
 
 def detectCollision(loc_astrobee, r): #detects if astrobee's location is within KOZ
     koz_1 = [[9.8585,-9.45,4.82],[12.0085,-8.5,4.8706]]
@@ -99,7 +100,7 @@ def calculateOtherCorners(c1, c2): #Calculates all the other corners of a rectan
     return all_c
 
 #Just a simple plotting function that automatically converts a variable sized list of points into 5
-def scatterPlotPoints(ax, *args):
+def scatterPlotPoints(ax, color, *args):
     x = []
     y = []
     z = []
@@ -107,10 +108,10 @@ def scatterPlotPoints(ax, *args):
         x.append(point[0])
         y.append(point[1])
         z.append(point[2])
-    ax.scatter3D(x, y, z, cmap='Greens')
+    ax.scatter3D(x, y, z, c=color)
 
-#Overloading the function to also support lists of points instead of just variable sized parameter lists
-def scatterPlotList(ax, points):
+
+def scatterPlotList(ax, color, points):
     x = []
     y = []
     z = []
@@ -118,7 +119,7 @@ def scatterPlotList(ax, points):
         x.append(point[0])
         y.append(point[1])
         z.append(point[2])
-    ax.scatter3D(x, y, z, cmap='Greens')
+    ax.scatter3D(x, y, z, c=color)
     
 def distanceToPoint(point1, point2):
     sum = 0
@@ -134,21 +135,29 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
     open_list = [[loc_astrobee,distanceToPoint(loc_astrobee, point2),0,[0,0,0],distanceToPoint(loc_astrobee, point2)]] #[[[coordinate], f_cost, g_cost, parent, h_cost]]
     closed = []
     selected_node = []
-
     for _ in trange(iterations, desc="Iterations of A* Algorithm"):
         # Finds the index of the best open_list node with the least f_cost
         best_f = open_list[0][1]
+        best_h = open_list[0][4]
         best_index = 0
         for index in range(len(open_list)):
-            if open_list[index][1] <= best_f: #point 1 is the f_cost of the point
+            if open_list[index][1] < best_f:
                 best_f = open_list[index][1]
+                best_h = open_list[index][4]
                 best_index = index
+            elif open_list[index][1] == best_f:
+                if open_list[index][4] < best_h:
+                    best_f = open_list[index][1]
+                    best_h = open_list[index][4]#best_h isn't actually necessarily the best h_cost, but instead just the h_cost of the best f_cost
+                    best_index = index
+        #checking if there's an issue with the way that the best f_cost is found, as if the supposed best_f is not actually the best_f
+        #print(str(best_f) + "   " + str(open_list[0][1]))
         
         #Appends this node to closed and removes it from open_list
         selected_node = open_list[best_index]
         open_list.pop(best_index)
         closed.append(selected_node)
-
+        
         #Tests if selected node is goal
         if pointsAreEqual(selected_node[0], point2, jump_dist):
             break #if it has reached the goal, stop the algorithm
@@ -157,12 +166,13 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
         for child in neighbors:
 
             #Calculates g, h, and f cost
-            child_g = selected_node[2] + distanceToPoint(selected_node[0], child) 
-            child_h = distanceToPoint(selected_node[0], point2) 
+            child_g = selected_node[2] + distanceToPoint(selected_node[0], child)
+
+            child_h = distanceToPoint(child, point2)
             child_f = child_g + child_h
 
             #Check if child will collide with KOZ
-            if detectCollision(child, r):
+            if False:
                 continue
 
             #Check if child is on closed
@@ -186,7 +196,7 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
             #Appends child to open_list
             open_list.append([child, child_f, child_g, selected_node[0], child_h]) #both the coordinates and the f_cost
    
-    #Find the closest waypoint to point2 and backtrace from there, since this will be the most successful waypoint so far
+    #Find the closest waypoint to point2 and backtrace from there
     lowest_h = closed[0][4]
     selected_node = closed[0]
     i = 0
@@ -196,7 +206,15 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
             selected_node = closed[i]
         i+=1
     path = backtracing(loc_astrobee, closed, selected_node, MARGIN)
-    return path
+    
+    closed_points = [i[0] for i in closed]
+    plottable = []
+    for point1 in closed_points:
+        for point2 in path:
+            if not pointsAreEqual(point1, point2, MARGIN):
+                plottable.append(point1) #plottable is a verison of closed without any of the duplicates of path
+            
+    return closed, plottable, path
 
 def backtracing(loc_astrobee, closed, selected_node, MARGIN):
     #Performs backtracing and appends list of parents toward final goal
@@ -243,9 +261,20 @@ axis = fig.add_subplot(111, projection='3d')
 
 #visualizing everything
 #scatterPlotPoints(axis, point_1, point_2, loc_astrobee)
-plotKOZ(axis)
+#plotKOZ(axis)
 #plotAstrobee(axis, loc_astrobee, r)
 
-path = generatePath(point_1, point_2, 0.1, 10000, r)
-scatterPlotList(axis, path)
+closed, plottable, path = generatePath(point_1, point_2, 0.1, 10000, r)
+scatterPlotList(axis, "b", path)
+#scatterPlotList(axis, "r", plottable)
+scatterPlotPoints(axis, "g", point_1, point_2)
+
+#Make scaling uniform and update graph
+axis.set_box_aspect([ub - lb for lb, ub in (getattr(axis, f'get_{a}lim')() for a in 'xyz')])
 plt.show()
+
+#Saves the path and closed opints
+with open("path", "wb") as fp:
+    pickle.dump(path, fp)
+with open("closed_points", "wb") as fp:
+    pickle.dump(closed, fp)
