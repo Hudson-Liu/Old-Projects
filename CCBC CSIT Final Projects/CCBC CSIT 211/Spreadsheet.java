@@ -36,12 +36,12 @@ public class Spreadsheet<T extends Person> {
 	}
 	
 	private int recursiveSearch(String name, int index, ObservableList<T> personList) {
-		Person currentPerson = personList.get(index);
-		if (currentPerson.getName() == name) {
-			return index;
-		}
-		else if (index == personList.size()) {
+		if (index == personList.size()) {
 			return -1;
+		}
+		Person currentPerson = personList.get(index);
+		if (currentPerson.getName().equals(name)) {
+			return index;
 		}
 		else {
 			return recursiveSearch(name, ++index, personList);
@@ -62,5 +62,9 @@ public class Spreadsheet<T extends Person> {
 	
 	public void addAtIndex(int index, T person) {
 		faculty.add(index, person);
+	}
+	
+	public void removeAtIndex(int index) {
+		faculty.remove(index);
 	}
 }

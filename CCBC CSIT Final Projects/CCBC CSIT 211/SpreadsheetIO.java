@@ -10,9 +10,8 @@ import java.util.Scanner;
 import javafx.collections.ObservableList;
 
 public class SpreadsheetIO {
-	
 	public Spreadsheet<Teacher> loadTeachers(String filename) 
-			throws FileNotFoundException, IOException {
+			throws FileNotFoundException, DatabaseFormattingException {
 		Spreadsheet<Teacher> teacherSheet = new Spreadsheet<Teacher>();
 		File file = new File(filename);
 		Scanner scan = new Scanner(file);
@@ -20,14 +19,14 @@ public class SpreadsheetIO {
 		while (scan.hasNextLine()) {
 			String line = scan.nextLine();
 			String[] arguments = line.split(" ");
-			if (arguments[0] == "TEACHER") {
-				Teacher person = new Teacher(arguments[1], arguments[2], Integer.valueOf(arguments[3]), 
-						arguments[4], Integer.valueOf(arguments[5]));
+			if (arguments[0].equals("TEACHER")) { //verifies you aren't opening a student file by accident
+				Teacher person = new Teacher(arguments[1].replace('_', ' '), arguments[2], 
+						Integer.valueOf(arguments[3]), arguments[4].replace('_', ' '), Integer.valueOf(arguments[5]));
 				teacherSheet.add(person);
 			}
 			else {
 				scan.close();
-				throw new IOException("File format was incorrect");
+				throw new DatabaseFormattingException("The file contents were formatted incorrectly");
 			}
 		}
 		scan.close();
@@ -35,7 +34,7 @@ public class SpreadsheetIO {
 	}
 	
 	public Spreadsheet<Student> loadStudents(String filename)
-			throws FileNotFoundException, IOException {
+			throws FileNotFoundException, DatabaseFormattingException {
 		Spreadsheet<Student> studentSheet = new Spreadsheet<Student>();
 		File file = new File(filename);
 		Scanner scan = new Scanner(file);
@@ -50,7 +49,7 @@ public class SpreadsheetIO {
 			}
 			else {
 				scan.close();
-				throw new IOException("File format was incorrect");
+				throw new DatabaseFormattingException("The file contents were formatted incorrectly");
 			}
 		}
 		scan.close();
@@ -71,8 +70,15 @@ public class SpreadsheetIO {
 	public <T extends Person> void saveFiles(String filename, ObservableList<T> people) throws IOException {
 		FileWriter fw = new FileWriter(filename);
 		PrintWriter pw = new PrintWriter(fw);
+		int counter = 0;
 		for (Person person : people) {
-			pw.println(person.toString());
+			if (counter == people.size() - 1) { // no newline at end of file
+				pw.print(person.toString());
+			}
+			else {
+				pw.println(person.toString());
+			}
+			counter++;
 		}
 		pw.close();
 	}
