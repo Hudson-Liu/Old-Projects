@@ -4,28 +4,35 @@ import java.lang.String;
 
 public class Student extends Person{
 	private int[] grades;
-	private int grade;
+	private String gradesStr;
+	private int yearsOfEducation;
 	
-	public Student(String name, String birthday, int age, int[] grades, int grade) {
+	public Student(String name, String birthday, int age, int[] grades, int yearsOfEducation) {
 		super(name, birthday, age);
-		this.grades = grades;
-		this.grade = grade;
+		this.grades = grades; //acts purely as a check to make sure that the input is a valid list of grades
+		this.gradesStr = gradesToString();
+		this.yearsOfEducation = yearsOfEducation;
 	}
 	
 	public int[] getGrades() {
 		return grades;
 	}
 	
-	public int getGrade() {
-		return grade;
+	public int getYearsOfEducation() {
+		return yearsOfEducation;
+	}
+	
+	public String getGradesStr() {
+		return gradesStr;
 	}
 	
 	public void setGrades(int[] grades) {
 		this.grades = grades;
+		this.gradesStr = gradesToString();
 	}
 	
-	public void setGrade(int grade) {
-		this.grade = grade;
+	public void setGrade(int yearsOfEducation) {
+		this.yearsOfEducation = yearsOfEducation;
 	}
 	
 	/**
@@ -45,6 +52,6 @@ public class Student extends Person{
 	public String toString() {
 		String grades_str = this.gradesToString();
 		return "STUDENT" + " " + super.toString() + " " + 
-				grades_str + " " + String.valueOf(grade);
+				grades_str + " " + String.valueOf(yearsOfEducation);
 	}
 }
