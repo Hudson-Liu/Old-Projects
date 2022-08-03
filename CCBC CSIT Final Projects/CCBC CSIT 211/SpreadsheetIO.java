@@ -42,8 +42,8 @@ public class SpreadsheetIO {
 		while (scan.hasNextLine()) {
 			String line = scan.nextLine();
 			String[] arguments = line.split(" ");
-			if (arguments[0] == "STUDENT") {
-				Student person = new Student(arguments[1], arguments[2], Integer.valueOf(arguments[3]), 
+			if (arguments[0].equals("STUDENT")) {
+				Student person = new Student(arguments[1].replace('_', ' '), arguments[2], Integer.valueOf(arguments[3]), 
 						stringToGrades(arguments[4]), Integer.valueOf(arguments[5]));
 				studentSheet.add(person);
 			}
