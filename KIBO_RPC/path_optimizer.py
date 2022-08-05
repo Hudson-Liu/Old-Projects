@@ -1,3 +1,7 @@
+#READ THIS:
+#THIS IS THE A* VERISON OF THE CODE
+#this is meant to have a smaller jump dist but not perfect
+
 #This code is mostly physical labor of smashing my fingers against the keyboard and very little actual programming
 #TODO: Make this code not physically hurt my eyes
 
@@ -5,20 +9,37 @@ import math
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import trange
+from tqdm import trange, tqdm
 import itertools
 import pickle
+import imageio
+import os
 
 def detectCollision(loc_astrobee, r): #detects if astrobee's location is within KOZ
     koz_1 = [[9.8585,-9.45,4.82],[12.0085,-8.5,4.8706]]
     koz_2 = [[9.8673,-9.18813,3.81957],[10.767,-8.288,4.82]]
     koz_3 = [[11.1067,-9.44819,4.87385],[12.0067,-8.89819,5.87385]]
-
-    if ((not doesCubeIntersectSphere(koz_1, loc_astrobee, r)) and (not doesCubeIntersectSphere(koz_2, loc_astrobee, r)) and (not doesCubeIntersectSphere(koz_3, loc_astrobee, r))):
+    
+    xbounds = [10, 13]
+    ybounds = [-11, -7]
+    zbounds = [4, 6]
+    
+    if ((not doesCubeIntersectSphere(koz_1, loc_astrobee, r)) 
+        and (not doesCubeIntersectSphere(koz_2, loc_astrobee, r)) 
+        and (not doesCubeIntersectSphere(koz_3, loc_astrobee, r)) 
+        and (not outOfBounds(loc_astrobee, xbounds, ybounds, zbounds))):
         return False #no collision
     else:
         return True #u done messed up
 
+def outOfBounds(loc_astrobee, xbounds, ybounds, zbounds):
+    if ((loc_astrobee[0] < xbounds[0] or loc_astrobee[0] > xbounds[1]) or
+         loc_astrobee[1] < ybounds[0] or loc_astrobee[1] > ybounds[1] or
+         loc_astrobee[2] < zbounds[0] or loc_astrobee[2] > zbounds[1]):
+        return True
+    else:
+        return False
+    
 #True means they intersect, False means that they don't (if you didn't realize that already you probably shouldn't be reading this code)
 def doesCubeIntersectSphere(koz, s, r):
     c1 = koz[0]
@@ -47,24 +68,29 @@ def plotKOZ(ax):
     koz_2 = [[9.8673,-9.18813,3.81957],[10.767,-8.288,4.82]]
     koz_3 = [[11.1067,-9.44819,4.87385],[12.0067,-8.89819,5.87385]]
     
+    xbounds = [10, 13]
+    ybounds = [-7, -11]
+    zbounds = [4, 6]
+    
     plotRectangle(koz_1[0], koz_1[1], ax)
     plotRectangle(koz_2[0], koz_2[1], ax)
     plotRectangle(koz_3[0], koz_3[1], ax)
+    plotRectangle([xbounds[0],ybounds[0],zbounds[0]], [xbounds[1],ybounds[1],zbounds[1]], ax, 0.0)
 
 #i'm stealing so much code from google that it should be considered robbery
-def plotRectangle(c1, c2, ax):
+def plotRectangle(c1, c2, ax, a=0.2):
     all_c = calculateOtherCorners(c1, c2)
     np_c = np.array(all_c)
     r = [-1, 1]
     X, Y = np.meshgrid(r, r)
-    ax.scatter3D(np_c[:, 0], np_c[:, 1], np_c[:, 2])
+    ax.scatter3D(np_c[:, 0], np_c[:, 1], np_c[:, 2], c="b")
     verts = [[np_c[0],np_c[1],np_c[2],np_c[3]], #dear anyone with eyes
     [np_c[4],np_c[5],np_c[6],np_c[7]], #i apologize
     [np_c[0],np_c[1],np_c[5],np_c[4]],
     [np_c[2],np_c[3],np_c[7],np_c[6]],
     [np_c[1],np_c[2],np_c[6],np_c[5]],
     [np_c[4],np_c[7],np_c[3],np_c[0]]]
-    ax.add_collection3d(Poly3DCollection(verts, facecolors='cyan', linewidths=1, edgecolors='r', alpha=.20))
+    ax.add_collection3d(Poly3DCollection(verts, facecolors='cyan', linewidths=0.75, edgecolors='b', alpha=a))
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -78,7 +104,8 @@ def plotAstrobee(ax, loc_astrobee, r, n_meridians = 20, n_circles_latitude = Non
     sphere_x = loc_astrobee[0] + r * np.cos(u) * np.sin(v)
     sphere_y = loc_astrobee[1] + r * np.sin(u) * np.sin(v)
     sphere_z = loc_astrobee[2] + r * np.cos(v)
-    ax.plot_surface(sphere_x, sphere_y, sphere_z, color="w", edgecolor="r")
+    ax.plot_wireframe(sphere_x, sphere_y, sphere_z, color="w", edgecolor="r", linewidths=0.75, alpha=0.8)
+    #ax.plot_surface(sphere_x, sphere_y, sphere_z, color="w", edgecolor="r", linewidths=0.75, alpha=0.8)
     #ax.plot_surface(sphere_x, sphere_y, sphere_z, color="r", alpha=0.5)
 
 #Behold: The Hudson-wants-to-kill-himself-inator
@@ -111,7 +138,7 @@ def scatterPlotPoints(ax, color, *args):
     ax.scatter3D(x, y, z, c=color)
 
 
-def scatterPlotList(ax, color, points):
+def scatterPlotList(ax, color, points, s=20):
     x = []
     y = []
     z = []
@@ -119,8 +146,9 @@ def scatterPlotList(ax, color, points):
         x.append(point[0])
         y.append(point[1])
         z.append(point[2])
-    ax.scatter3D(x, y, z, c=color)
+    ax.scatter3D(x, y, z, c=color, alpha=1, s=s)
     
+#TODO: Replace sum keyword with something else
 def distanceToPoint(point1, point2):
     sum = 0
     n_dim = 3
@@ -150,9 +178,7 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
                     best_f = open_list[index][1]
                     best_h = open_list[index][4]#best_h isn't actually necessarily the best h_cost, but instead just the h_cost of the best f_cost
                     best_index = index
-        #checking if there's an issue with the way that the best f_cost is found, as if the supposed best_f is not actually the best_f
-        #print(str(best_f) + "   " + str(open_list[0][1]))
-        
+
         #Appends this node to closed and removes it from open_list
         selected_node = open_list[best_index]
         open_list.pop(best_index)
@@ -161,24 +187,26 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
         #Tests if selected node is goal
         if pointsAreEqual(selected_node[0], point2, jump_dist):
             break #if it has reached the goal, stop the algorithm
+            
         #Generate children of current node (neighbors of current node)
         neighbors = generateNeighbors(selected_node[0], jump_dist)
         for child in neighbors:
-
+            valid_node = True
+            
             #Calculates g, h, and f cost
-            child_g = selected_node[2] + distanceToPoint(selected_node[0], child)
-
+            child_g = selected_node[2] + jump_dist
+            #child_g = selected_node[2] + distanceToPoint(selected_node[0], child) #this is a weird function that has weird behavior and might be useful?
             child_h = distanceToPoint(child, point2)
             child_f = child_g + child_h
 
             #Check if child will collide with KOZ
-            if False:
-                continue
+            if detectCollision(child, r):#TODO: Change this to detectCollision()
+                valid_node = False
 
             #Check if child is on closed
             for point in closed:
                 if pointsAreEqual(child, point[0], MARGIN):
-                    continue #Skip the point and move onto the next one
+                    valid_node = False #Skip the point and move onto the next one
 
             #Check if the child is on open_list already
             remove_index = 0
@@ -189,12 +217,13 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
                         remove_index = index #THIS HAS TO BE THE LAST STATEMENT BEFFORE THE VARIABLE IS APPENDED
                         remove = True
                     else:
-                        continue
+                        valid_node = False
             if remove:
                 open_list.pop(remove_index)
-
+            
             #Appends child to open_list
-            open_list.append([child, child_f, child_g, selected_node[0], child_h]) #both the coordinates and the f_cost
+            if valid_node:
+                open_list.append([child, child_f, child_g, selected_node[0], child_h]) #both the coordinates and the f_cost
    
     #Find the closest waypoint to point2 and backtrace from there
     lowest_h = closed[0][4]
@@ -207,12 +236,16 @@ def generatePath(loc_astrobee, point2, jump_dist, iterations, r): #jump_dist is 
         i+=1
     path = backtracing(loc_astrobee, closed, selected_node, MARGIN)
     
+    #Create a duplicate-removed version of closed
     closed_points = [i[0] for i in closed]
     plottable = []
     for point1 in closed_points:
+        dont_append = False
         for point2 in path:
-            if not pointsAreEqual(point1, point2, MARGIN):
-                plottable.append(point1) #plottable is a verison of closed without any of the duplicates of path
+            if pointsAreEqual(point1, point2, MARGIN) or pointsAreEqual(point1, loc_astrobee, MARGIN):
+                dont_append = True
+        if not dont_append:
+            plottable.append(point1) #plottable is a verison of closed without any of the duplicates of path
             
     return closed, plottable, path
 
@@ -229,7 +262,7 @@ def backtracing(loc_astrobee, closed, selected_node, MARGIN):
         path.append(selected_node[0])
 
 def pointsAreEqual(point1, point2, margin): #this accomodates for the intrinsic inaccuracy of floats
-    for i in range(len(point1)):
+    for i in range(0, 3):
         if (abs(point1[i] - point2[i]) >= margin): #If a single of the x, y, or z coordinates are off then return false
             return False
     return True
@@ -244,30 +277,68 @@ def generateNeighbors(current_node, jump_dist):
                           current_node[2] + translate[2]])#z
     return neighbors
 
-loc_astrobee = [0,0,0]
+def saveAnimation(ax, path, r):
+    i = 0
+    past_loc = []
+    future_loc = path
+    ax.view_init(30,30)
+    cwd = os.getcwd()
+    if not os.path.exists(cwd + r"\Frames"):
+        os.makedirs(cwd + r"\Frames")
+
+    for loc_astrobee in tqdm(path, desc="Path Animation: "):
+        plt.cla()
+        #Plots Astrobee and KOZs
+        plotAstrobee(ax, loc_astrobee, r)
+        plotKOZ(ax)
+        if not (future_loc is None):
+            future_loc = future_loc.remove(loc_astrobee)
+            
+        #Plots paths and center of astrobee
+        scatterPlotList(ax, "r", past_loc)
+        scatterPlotList(ax, "black", [loc_astrobee], 40)
+        if not (future_loc is None):
+            scatterPlotList(ax, "b", future_loc)
+            
+        #Saves frame
+        plt.savefig(cwd + r"\Frames\Frame " + str(i), dpi=120, bbox_inches='tight')
+        past_loc.append(loc_astrobee)
+        
+        i += 1
+    
+    images = []
+    for counter in range(len(path)):
+        images.append(imageio.imread(cwd + r"\Frames\Frame " + str(counter) + ".png"))
+    imageio.mimsave('movie.gif', images)
+    
 point_1 = [10.71, -7.5-0.2725783682, 4.48]
 point_2 = [11.2746-0.0713120911,-9.92284, 5.29881+0.1626665617]
 
 #astrobee bounding box definition
-width = 0.25
-length = 0.25
-height = 0.25
+width = 0.31
+length = 0.31
+height = 0.31
 r = math.sqrt(width**2+length**2+height**2) #The robot also rotates so we should treat it as a sphere
 
-collide = detectCollision(loc_astrobee, r)
+#collide = detectCollision([10.71, -7.5-0.2725783682, 4.48], r)
 
 fig = plt.figure()
 axis = fig.add_subplot(111, projection='3d')
 
 #visualizing everything
 #scatterPlotPoints(axis, point_1, point_2, loc_astrobee)
+#scatterPlotPoints(axis, "g", point_1, point_2)
 #plotKOZ(axis)
 #plotAstrobee(axis, loc_astrobee, r)
 
-closed, plottable, path = generatePath(point_1, point_2, 0.1, 10000, r)
-scatterPlotList(axis, "b", path)
+figure = plt.gcf()  # get current figure
+figure.set_size_inches(32, 18)
+
+closed, plottable, path = generatePath(point_1, point_2, 0.1, 100, r) #original 0.03 20000
+saveAnimation(axis, path, r)
+#scatterPlotList(axis, "b", path)
 #scatterPlotList(axis, "r", plottable)
-scatterPlotPoints(axis, "g", point_1, point_2)
+#scatterPlotPoints(axis, "g", point_1, point_2)
 
 #Make scaling uniform and update graph
 axis.set_box_aspect([ub - lb for lb, ub in (getattr(axis, f'get_{a}lim')() for a in 'xyz')])
