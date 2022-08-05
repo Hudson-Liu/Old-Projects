@@ -1,0 +1,34 @@
+// ++C: A Postfix Syntax C++ Language//
+// comments will be surrounded by two slashes //
+// NOTE: semicolons will flush all the leftover return values from the stack//
+// Also, this programming language is entirety interpreted, and gets translated directly into C++ //
+
+//OUTDATED//
+// the cin operation will return itself, therefore "x y cin >> >>" simplifies to "x cin >>" after the y input is received //
+// the same is true for all datatype declarations //
+// Additionallyty, the order of operands does not matter for a binary operator, it only matters when there are more than one operator //
+
+//NEW//
+// The philosophy behind unary operators such as "int" will be that the operand, not the operator, will always be returned //
+// The philosophy behind cin is that cin is "merged" with y, and therefore will return cin //
+// the order of certain operators, such as + or *, does not matter, while the order of other operators, such as >>, has distinct syntax //
+// If a binary operator doesn't result in one distinct return value, the rvalue will always be returned; e.g. y cin >> will return cin //
+// In general, the lvalue will be expected to be dependent on the rvalue for directional operators//
+// The full list of supported datatypes will be: int, string, and boolean//
+// The big idea of this language is that everything is either an operand or operator; if
+functions and classes were to be added, they would only be extensions of this idea//
+// there's a few special quirks about my language that C++ doesn't have, such as the fact that all operators have to be space separated, with the exception of the comment operator//
+// that's not just for readability, although that's the main concerning factor, its also because i'm lazy and that's the easiest way to do it with the way that i'm parsing the file //
+
+// some operators such as "while" will not return anything //
+// Error messages will be simple, like "something failed at line 5" //
+{
+    "Enter two integers: " cout <<;
+    x int y int cin >> >>;
+    sum int x y + =;
+    endl sum "\nTheir sum is " cout << << <<;
+
+    "Would you like to run the program again? (y/n) " cout <<;
+    input string;
+    break (input "N" == input "n" == ||) if;
+} true while;
