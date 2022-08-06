@@ -19,9 +19,13 @@
 functions and classes were to be added, they would only be extensions of this idea//
 // there's a few special quirks about my language that C++ doesn't have, such as the fact that all operators have to be space separated, with the exception of the comment operator//
 // that's not just for readability, although that's the main concerning factor, its also because i'm lazy and that's the easiest way to do it with the way that i'm parsing the file //
+// In ++C, you cannot use keywords as variable names, since the whole thing is operator based and as such keywords are also operators //
+// Declared variables do have a default value, which is a 0 value in whatever datatype is being used, e.g. a string would initialize with "", a bool would initialize with false, etc.//
 
 // some operators such as "while" will not return anything //
 // Error messages will be simple, like "something failed at line 5" //
+//I think this demo program might be too complex so i'll start with the other one instead//
+//
 {
     "Enter two integers: " cout <<;
     x int y int cin >> >>;
@@ -31,4 +35,9 @@ functions and classes were to be added, they would only be extensions of this id
     "Would you like to run the program again? (y/n) " cout <<;
     input string;
     break (input "N" == input "n" == ||) if;
-} true while;
+} true while;//
+
+"Enter two integers: " co//test//ut <<;
+x int y int cin >> >>;
+sum int x y + =;
+endl sum "\nTheir sum is " cout << << <<;
