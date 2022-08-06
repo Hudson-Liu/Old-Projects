@@ -9,6 +9,7 @@ aaaa88aaaa  aaaa88aaaa  88
                           `"Y8888Y"'   
                                        */
 // ++C (AKA PostC)
+// A basic Postfix Scripting Language Lexer + Interpreter
 // By Hudson Liu
 
 #include <iostream>
@@ -26,14 +27,16 @@ class Interpreter{
         Interpreter();
         Interpreter(string fileContents);
 
+        //Remove comments
+        void removeComments();
+
         //Parses the string into a set of identifiers
         void parseFile();
 
         //Main loop, loops through each line of file and translates + runs each line
-        void lineIterator();
+        void identifierIterator();
     private:
         string fileContents;
-        vector<string> program;
         vector<string> parsed;
 
         vector<int> integerVars; //i
@@ -43,20 +46,21 @@ class Interpreter{
         stack<string> operands;
         map<string, pair<char, int>> variableKey; /// string is variable name, char is datatype, int is index
 
-        //variableKey.insert()
-        //pair<char, int> val = variableKey[i]
-        //val.first to get first val, val.second to get second
-
         //A bunch of switch cases that determines what function the identifier should be handled by
         void identifierHandoff(string identifier);
 
+        //Detects whether an identifier is a variable or not
+        bool isVariableName(string identifier);
+
+        //Access variable by identifier, and return the proper type; throws error if variable is not correct type 
+        int getInt(string variableName);
+        string getString(string variableName);
+        bool getBool(string variableName);
+
+        //Quick conversion from char abbreviation to full datatype name, used for getInt, getString, and getBool error messages
+        string charToDatatype(char datatype);
+
         ///IMPORTANT NOTE: Handlers only exist for operator, all operands are added equally to the operand list
-
-        //If brackets are detected {}, the line iterator will skip forward how ever many lines until the end bracket is found and resolve the expression
-        void bracketHandler();
-
-        //If quotes are detected "", the program will store it as an operand on the stack but not as a string variable
-        void quoteHandler();
 
         //If a "string" variable declaration is detected, the last operand will be added to the variableKey list as a string 
         void stringDeclarationHandler();
@@ -73,17 +77,17 @@ class Interpreter{
         //If a stream extraction operator >> is detected, the second-to-last operand on the stack will be given the input of the last operand
         void streamExtractionHandler();
 
-        //If an equality operator == is detected, the last two operands will be compared
-        void equalityHandler();
+        //If an addition operator is detected, perform addition (obviously)
+        void additionHandler();
 
-        //If an or operator || is detected, the last two operands will be expected to be boolean values
-        void orHandler();
+        //If a subtraction operator is detected, perform subtraction (you wouldn't say)
+        void subtractionHandler();
 
-        //If an if operator is detected, the last operand will be the conditional and the second to last operand will be the executed code
-        void ifHandler();
+        //If a multiplication operator is detected, perform multiplication (was this code written by a toddler?)
+        void multiplicationHandler();
 
-        //If a while operator is detected, calls an instance of the line iterator on the first operand as long as the second operand (a conditional) is satisfied
-        void whileLoops();
+        //If a division operator is detected, perform division
+        void divisionHandler();
 };
 
 int main(){
@@ -112,6 +116,7 @@ int main(){
     //Runs the Interpreter
     Interpreter interpret(program);
     interpret.parseFile();
+    interpret.identifierIterator();
 
     return 0;
 }
@@ -125,40 +130,63 @@ Interpreter::Interpreter(string fileContents){
     Interpreter::fileContents = fileContents;
 }
 
+void Interpreter::removeComments(){
+    //Loops until the end of the program
+    int cursor = 1;
+    int size = 1;
+    char currentChar = ' ';
+    char prevChar = 'L'; //Placeholder character; it just needs to not be '/', ' ', or '\"'
+    bool commentClearance = false;
+    string cleaned;
+    while (cursor < fileContents.length()){
+        //Updates currentChar
+        currentChar = fileContents[cursor];
+        prevChar = fileContents[cursor - 1];
+
+        //Detect comments
+        if (currentChar != '/' || prevChar != '/'){
+            cleaned += prevChar;
+            cursor++;
+        }
+        else{
+            //Clear cursor from any additional /'s attached to the string
+            cursor++;
+            //Move past comment
+            do{
+                cursor++;
+                currentChar = fileContents[cursor];
+                prevChar = fileContents[cursor - 1];
+            } while(currentChar != '/' || prevChar != '/');
+            //Clear the two end //'ss
+            cursor+=2;
+        }
+    }
+    //Gets last character only if the last characters weren't a comment
+    if (cursor == fileContents.length() + 1){
+        currentChar = fileContents[cursor];
+        cleaned += currentChar;
+    }
+    fileContents = cleaned;
+}
+
 void Interpreter::parseFile(){
+    //Removes Comments
+    removeComments();
+    
     //Loops until the end of a statement
     int cursor = 0;
     int size = 1;
     char currentChar = ' ';
     char prevChar = 'L'; //Placeholder character; it just needs to not be '/', ' ', or '\"'
-    bool notInRange = true;
-    while (currentChar != ';'){
+    while (cursor < fileContents.length()){
         //Updates currentChar
         currentChar = fileContents[cursor];
         if (cursor > 0){
             prevChar = fileContents[cursor - 1];
         }
 
-        cout << currentChar << prevChar << endl;
-        //If the current characters are a comment, move the cursor to the end of the comment
-        if (currentChar == '/' && prevChar == '/'){
-            //Add the current identifier to the substring since there's a comment cutting it off now
-            if (size != 1){
-                string substring = fileContents.substr((cursor - size) + 1, size - 1);
-                parsed.push_back(substring);
-                cursor += size + 1;
-                size = 1;   
-            }
-            //Move cursor to end of comment
-            do {
-                cursor++;
-                currentChar = fileContents[cursor];
-                prevChar = fileContents[cursor - 1];
-            } while (currentChar != '/' || prevChar != '/');
-            cursor+=2;
-        }
         //If the current character is a quote, skip to the end of it, then make that whole quote one big identifier
-        else if(currentChar == '\"'){
+        if(currentChar == '\"'){
             int starter = cursor;
             int sizeStr = 1;
             do {
@@ -166,16 +194,15 @@ void Interpreter::parseFile(){
                 sizeStr++;
                 currentChar = fileContents[cursor];
             } while (currentChar != '\"');
-            cursor++;
+            cursor+=2;
             string substring = fileContents.substr(starter, sizeStr);
-            program.push_back(substring);
+            parsed.push_back(substring);
         }
         //If the current character is a whitespace, add the past word to the list as a substring, unless there was an accidental double space
-        else if (currentChar == ' ' && prevChar != ' '){ //in case, at the start of the program, there's 
+        else if (currentChar == ' ' && prevChar != ' '){
             //Add the parsed substring to the vector, and reset size and update the cursor position
-            string substring = fileContents.substr((cursor - size) + 1, size);
+            string substring = fileContents.substr((cursor - size) + 1, size - 1);
             parsed.push_back(substring);
-            cursor += size + 1;
             size = 1;
             
             //Ensure the cursor position is past any additional spaces
@@ -185,6 +212,16 @@ void Interpreter::parseFile(){
                 currentChar = fileContents[cursor];
             }
         }
+        //If the current character is a semicolon, adds the current identifier and the semicolon to parsed, then skip past the semicolon
+        else if (currentChar == ';'){
+            string substring = fileContents.substr((cursor - size) + 1, size - 1);
+            parsed.push_back(substring);
+            string semicolon = fileContents.substr(cursor, 1);
+            parsed.push_back(semicolon);
+            cursor++;
+            size = 1;
+        }
+        //If it isn't any special case, then iterate it as normal
         else{
             cursor++;
             size++;
@@ -196,7 +233,166 @@ void Interpreter::parseFile(){
     }
 }
 
-//some operators will neeed to be tested for character-by-character, e.g. //, ", {
-void Interpreter::lineIterator(){
-    
+void Interpreter::identifierIterator(){
+    //Iterates over all the identifiers in the "parsed" list
+    for (string identifier : parsed){
+        identifierHandoff(identifier);
+    }
+}
+
+void Interpreter::identifierHandoff(string identifier){
+    //Detects all operators and performs relevant operations; if not operator it will just append the value to operands
+    if (identifier == "<<"){
+        streamInsertionHandler();
+    }
+    else if (identifier == ";"){
+        operands.empty();
+    }
+    else if (identifier == "int"){
+        intDeclarationHandler();
+    }
+    else if (identifier == "string"){
+        stringDeclarationHandler();
+    }
+    else if (identifier == "bool"){
+        boolDeclarationHandler();
+    }
+    else if (identifier == ">>"){
+        streamExtractionHandler();
+    }
+    else {
+        operands.push(identifier);
+    }
+}
+void Interpreter::streamInsertionHandler(){
+    //Pull the two relevant operators off the stack
+    string outputStream = operands.top();
+    operands.pop();
+    string text = operands.top();
+    operands.pop();
+    //Check for a valid rvalue
+    if (outputStream == "cout"){
+        //Find the appropriate action to take based off of the lvalue
+        if (text[0] == '\"' && text[text.length() - 1] == '\"'){
+            string noQuotes = text.substr(1, text.length() - 2);
+            cout << noQuotes;
+        }
+        else if (isVariableName(text)){
+            string returnText = getString(text);
+            cout << returnText;
+        }
+        else if (text == "endl"){
+            cout << "\n";
+        }
+        else{
+            cout << "++C ERROR: Stream insertion operator lvalue expected string or modifier, received: \"" << text << "\"\n";
+            exit(1);
+        }
+
+        // "<<" operator returns cout
+        operands.push("cout");
+    }
+    else{
+        cout << "++C ERROR: Stream insertion operator rvalue expected \"cout\", received: \"" << outputStream << "\"\n";
+        exit(1);
+    }
+}
+
+void Interpreter::streamExtractionHandler(){
+    //Pull the two relevant operators off the stack
+    string inputStream = operands.top();
+    operands.pop();
+    string varName = operands.top();
+    operands.pop();
+    //Check for a valid rvalue
+    if (inputStream == "cin"){
+        //Find the appropriate action to take based off of the lvalue
+        if (isVariableName(varName)){
+            //TODO search the key for the variable, then use the index to create a refernece to that varaible along the lines of integerVars[i] to have the cin feed into
+        }
+        else{
+            cout << "++C ERROR: Stream extraction operator lvalue expected variable, received: \"" << varName << "\"\n";
+            exit(1);
+        }
+
+        // "<<" operator returns cout
+        operands.push("cout");
+    }
+    else{
+        cout << "++C ERROR: Stream extraction operator rvalue expected \"cin\", received: \"" << inputStream << "\"\n";
+        exit(1);
+    }
+}
+
+//TODO implement cin and variable assignment
+void Interpreter::intDeclarationHandler(){
+    //Doesn't pop the stack since variable declaration returns the variable
+    string varName = operands.top();
+    pair<char, int> keyPair = pair<char,int>('i', stringVars.size());
+    variableKey.insert({varName, keyPair});
+    integerVars.push_back(0);
+}
+
+void Interpreter::stringDeclarationHandler(){
+    //Doesn't pop the stack since variable declaration returns the variable
+    string varName = operands.top();
+    pair<char, int> keyPair = pair<char,int>('s', stringVars.size());
+    variableKey.insert({varName, keyPair});
+    stringVars.push_back("");
+}
+
+void Interpreter::boolDeclarationHandler(){
+    //Doesn't pop the stack since variable declaration returns the variable
+    string varName = operands.top();
+    pair<char, int> keyPair = pair<char,int>('b', stringVars.size());
+    variableKey.insert({varName, keyPair});
+    boolVars.push_back(false);
+}
+
+int Interpreter::getInt(string variableName){
+    pair<char, int> pairing = variableKey.at(variableName);
+    char datatype = pairing.first;
+    if (datatype != 'i'){
+        cout << "++C ERROR: Operator expected int, received: \"" << charToDatatype(datatype) << "\"\n";
+        exit(1);
+    }
+    int index = pairing.second;
+    return integerVars[index];
+}
+
+string Interpreter::getString(string variableName){
+    pair<char, int> pairing = variableKey.at(variableName);
+    char datatype = pairing.first;
+    if (datatype != 's'){
+        cout << "++C ERROR: Operator expected string, received: \"" << charToDatatype(datatype) << "\"\n";
+        exit(1);
+    }
+    int index = pairing.second;
+    return stringVars[index];
+}
+
+bool Interpreter::getBool(string variableName){
+    pair<char, int> pairing = variableKey.at(variableName);
+    char datatype = pairing.first;
+    if (datatype != 'b'){
+        cout << "++C ERROR: Operator expected bool, received: \"" << charToDatatype(datatype) << "\"\n";
+        exit(1);
+    }
+    int index = pairing.second;
+    return integerVars[index];
+}
+
+bool Interpreter::isVariableName(string identifier){
+    return variableKey.find(identifier) != variableKey.end();
+}
+
+string charToDatatype(char datatype){
+    switch (datatype){
+        case 'i':
+            return "int";
+        case 's':
+            return "string";
+        case 'b':
+            return "bool";
+    }
 }
