@@ -18,6 +18,7 @@ aaaa88aaaa  aaaa88aaaa  88
 #include <cstdlib>
 #include <vector>
 #include <map>
+#include <string>
 
 using namespace std;
 
@@ -76,6 +77,9 @@ class Interpreter{
 
         //If a stream extraction operator >> is detected, the second-to-last operand on the stack will be given the input of the last operand
         void streamExtractionHandler();
+
+        //If an assignment operator = is detected, the rvalue will be assigned to the lvalue
+        void assignmentHandler();
 
         //If an addition operator is detected, perform addition (obviously)
         void additionHandler();
@@ -227,7 +231,7 @@ void Interpreter::parseFile(){
             size++;
         }
     }
-    //TODO: Remove this after finished debugging
+    //TODO: Remove this after finished debugging 
     for (string i : parsed){
         cout << i << endl;
     }
@@ -259,6 +263,21 @@ void Interpreter::identifierHandoff(string identifier){
     }
     else if (identifier == ">>"){
         streamExtractionHandler();
+    }
+    else if (identifier == "="){
+        assignmentHandler();
+    }
+    else if (identifier == "+"){
+        additionHandler();
+    }
+    else if (identifier == "-"){
+        subtractionHandler();
+    }
+    else if (identifier == "*"){
+        multiplicationHandler();
+    }
+    else if (identifier == "/"){
+        divisionHandler();
     }
     else {
         operands.push(identifier);
@@ -306,17 +325,27 @@ void Interpreter::streamExtractionHandler(){
     operands.pop();
     //Check for a valid rvalue
     if (inputStream == "cin"){
-        //Find the appropriate action to take based off of the lvalue
+        //Find the appropriate action to take based off of the lvalue 
         if (isVariableName(varName)){
-            //TODO search the key for the variable, then use the index to create a refernece to that varaible along the lines of integerVars[i] to have the cin feed into
+            pair<char, int> pairing = variableKey.at(varName);
+            char datatype = pairing.first;
+            switch (datatype){
+                case 'i':
+                    cin >> integerVars[pairing.second];
+                case 's':
+                    cin >> stringVars[pairing.second];
+                default:
+                    cout << "++C ERROR: Stream extraction operator lvalue expected datatype string or int, received: \"" 
+                        << charToDatatype(datatype) << "\"\n";
+                    exit(1);
+            }
         }
         else{
             cout << "++C ERROR: Stream extraction operator lvalue expected variable, received: \"" << varName << "\"\n";
             exit(1);
         }
-
-        // "<<" operator returns cout
-        operands.push("cout");
+        // ">>" operator returns cin
+        operands.push("cin");
     }
     else{
         cout << "++C ERROR: Stream extraction operator rvalue expected \"cin\", received: \"" << inputStream << "\"\n";
@@ -324,7 +353,27 @@ void Interpreter::streamExtractionHandler(){
     }
 }
 
-//TODO implement cin and variable assignment
+void Interpreter::assignmentHandler(){
+    //Finds the name of the variable and the corresponding variable type
+    string valStr = operands.top();
+    operands.pop();
+    string varName = operands.top();
+    operands.pop();
+    pair<char, int> pairing = variableKey.at(varName);
+    char datatype = pairing.first;
+    //Reads the assignment value appropriately
+    switch (datatype){
+        case 'i':
+            integerVars[pairing.second] = stoi(valStr);
+        case 's':
+            stringVars[pairing.second] = valStr;
+        case 'b':
+            boolVars[pairing.second] = (valStr == "true");
+    }
+    //Adds back the rvalue, since "=" returns the value that was assigned
+    operands.push(valStr);
+}
+
 void Interpreter::intDeclarationHandler(){
     //Doesn't pop the stack since variable declaration returns the variable
     string varName = operands.top();
@@ -395,4 +444,40 @@ string charToDatatype(char datatype){
         case 'b':
             return "bool";
     }
+}
+
+void Interpreter::additionHandler(){
+    string val1 = operands.top();
+    operands.pop();
+    string val2 = operands.top();
+    operands.pop();
+    string sum = to_string(stoi(val1) + stoi(val2));
+    operands.push(sum);
+}
+
+void Interpreter::subtractionHandler(){
+    string val1 = operands.top();
+    operands.pop();
+    string val2 = operands.top();
+    operands.pop();
+    string difference = to_string(stoi(val1) - stoi(val2));
+    operands.push(difference);
+}
+
+void Interpreter::multiplicationHandler(){
+    string val1 = operands.top();
+    operands.pop();
+    string val2 = operands.top();
+    operands.pop();
+    string product = to_string(stoi(val1) * stoi(val2));
+    operands.push(product);
+}
+
+void Interpreter::divisionHandler(){
+    string val1 = operands.top();
+    operands.pop();
+    string val2 = operands.top();
+    operands.pop();
+    string quotient = to_string(stoi(val1) / stoi(val2)); //account for floats
+    operands.push(quotient);
 }
