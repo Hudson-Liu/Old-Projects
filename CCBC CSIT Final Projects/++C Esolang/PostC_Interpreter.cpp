@@ -10,7 +10,7 @@ aaaa88aaaa  aaaa88aaaa  88
                                        */
 // ++C (AKA PostC)
 // A basic Postfix Scripting Language Lexer + Interpreter
-// By Hudson Liu
+// Hudson Liu
 
 #include <iostream>
 #include <stack>
@@ -61,7 +61,8 @@ class Interpreter{
         //Quick conversion from char abbreviation to full datatype name, used for getInt, getString, and getBool error messages
         string charToDatatype(char datatype);
 
-        ///IMPORTANT NOTE: Handlers only exist for operator, all operands are added equally to the operand list
+        //Convert \n's to actual newline characters; directly edits original string
+        string formatString(string unformatted);
 
         //If a "string" variable declaration is detected, the last operand will be added to the variableKey list as a string 
         void stringDeclarationHandler();
@@ -81,17 +82,11 @@ class Interpreter{
         //If an assignment operator = is detected, the rvalue will be assigned to the lvalue
         void assignmentHandler();
 
-        //If an addition operator is detected, perform addition (obviously)
-        void additionHandler();
+        //If an arithmetic operator is detected, perform the operation
+        void arithmeticHandler(string identifier);
 
-        //If a subtraction operator is detected, perform subtraction (you wouldn't say)
-        void subtractionHandler();
-
-        //If a multiplication operator is detected, perform multiplication (was this code written by a toddler?)
-        void multiplicationHandler();
-
-        //If a division operator is detected, perform division
-        void divisionHandler();
+        //If a semicolon is detected, clear the stack
+        void semicolonHandler();
 };
 
 int main(){
@@ -115,7 +110,6 @@ int main(){
             program = program + character;
         }
     }
-    cout << program;
 
     //Runs the Interpreter
     Interpreter interpret(program);
@@ -136,10 +130,8 @@ Interpreter::Interpreter(string fileContents){
 
 void Interpreter::removeComments(){
     //Loops until the end of the program
-    int cursor = 1;
-    int size = 1;
-    char currentChar = ' ';
-    char prevChar = 'L'; //Placeholder character; it just needs to not be '/', ' ', or '\"'
+    int cursor = 1, size = 1;
+    char currentChar = ' ', prevChar = 'L';
     bool commentClearance = false;
     string cleaned;
     while (cursor < fileContents.length()){
@@ -178,10 +170,8 @@ void Interpreter::parseFile(){
     removeComments();
     
     //Loops until the end of a statement
-    int cursor = 0;
-    int size = 1;
-    char currentChar = ' ';
-    char prevChar = 'L'; //Placeholder character; it just needs to not be '/', ' ', or '\"'
+    int cursor = 0, size = 1;
+    char currentChar = ' ', prevChar = 'L';
     while (cursor < fileContents.length()){
         //Updates currentChar
         currentChar = fileContents[cursor];
@@ -231,10 +221,6 @@ void Interpreter::parseFile(){
             size++;
         }
     }
-    //TODO: Remove this after finished debugging 
-    for (string i : parsed){
-        cout << i << endl;
-    }
 }
 
 void Interpreter::identifierIterator(){
@@ -248,9 +234,6 @@ void Interpreter::identifierHandoff(string identifier){
     //Detects all operators and performs relevant operations; if not operator it will just append the value to operands
     if (identifier == "<<"){
         streamInsertionHandler();
-    }
-    else if (identifier == ";"){
-        operands.empty();
     }
     else if (identifier == "int"){
         intDeclarationHandler();
@@ -267,17 +250,11 @@ void Interpreter::identifierHandoff(string identifier){
     else if (identifier == "="){
         assignmentHandler();
     }
-    else if (identifier == "+"){
-        additionHandler();
+    else if (identifier == "+" || identifier == "-" || identifier == "*" || identifier == "/"){
+        arithmeticHandler(identifier);
     }
-    else if (identifier == "-"){
-        subtractionHandler();
-    }
-    else if (identifier == "*"){
-        multiplicationHandler();
-    }
-    else if (identifier == "/"){
-        divisionHandler();
+    else if (identifier == ";"){
+        semicolonHandler();
     }
     else {
         operands.push(identifier);
@@ -294,10 +271,22 @@ void Interpreter::streamInsertionHandler(){
         //Find the appropriate action to take based off of the lvalue
         if (text[0] == '\"' && text[text.length() - 1] == '\"'){
             string noQuotes = text.substr(1, text.length() - 2);
-            cout << noQuotes;
+            cout << formatString(noQuotes);
         }
         else if (isVariableName(text)){
-            string returnText = getString(text);
+            pair<char, int> pairing = variableKey.at(text);
+            string returnText;
+            switch(pairing.first){
+                case 'i':
+                    returnText = to_string(getInt(text));
+                    break;
+                case 's':
+                    returnText = getString(text);
+                    break;
+                case 'b':
+                    returnText = to_string(getBool(text));
+                    break;
+            }
             cout << returnText;
         }
         else if (text == "endl"){
@@ -307,8 +296,7 @@ void Interpreter::streamInsertionHandler(){
             cout << "++C ERROR: Stream insertion operator lvalue expected string or modifier, received: \"" << text << "\"\n";
             exit(1);
         }
-
-        // "<<" operator returns cout
+        //"<<" operator returns cout
         operands.push("cout");
     }
     else{
@@ -325,15 +313,17 @@ void Interpreter::streamExtractionHandler(){
     operands.pop();
     //Check for a valid rvalue
     if (inputStream == "cin"){
-        //Find the appropriate action to take based off of the lvalue 
+        //Find the appropriate action to take based off of the lvalue
         if (isVariableName(varName)){
             pair<char, int> pairing = variableKey.at(varName);
             char datatype = pairing.first;
             switch (datatype){
                 case 'i':
                     cin >> integerVars[pairing.second];
+                    break;
                 case 's':
                     cin >> stringVars[pairing.second];
+                    break;
                 default:
                     cout << "++C ERROR: Stream extraction operator lvalue expected datatype string or int, received: \"" 
                         << charToDatatype(datatype) << "\"\n";
@@ -365,10 +355,13 @@ void Interpreter::assignmentHandler(){
     switch (datatype){
         case 'i':
             integerVars[pairing.second] = stoi(valStr);
+            break;
         case 's':
-            stringVars[pairing.second] = valStr;
+            stringVars[pairing.second] = formatString(valStr.substr(1, valStr.length() - 2));
+            break;
         case 'b':
             boolVars[pairing.second] = (valStr == "true");
+            break;
     }
     //Adds back the rvalue, since "=" returns the value that was assigned
     operands.push(valStr);
@@ -377,7 +370,7 @@ void Interpreter::assignmentHandler(){
 void Interpreter::intDeclarationHandler(){
     //Doesn't pop the stack since variable declaration returns the variable
     string varName = operands.top();
-    pair<char, int> keyPair = pair<char,int>('i', stringVars.size());
+    pair<char, int> keyPair = pair<char,int>('i', integerVars.size());
     variableKey.insert({varName, keyPair});
     integerVars.push_back(0);
 }
@@ -393,7 +386,7 @@ void Interpreter::stringDeclarationHandler(){
 void Interpreter::boolDeclarationHandler(){
     //Doesn't pop the stack since variable declaration returns the variable
     string varName = operands.top();
-    pair<char, int> keyPair = pair<char,int>('b', stringVars.size());
+    pair<char, int> keyPair = pair<char,int>('b', boolVars.size());
     variableKey.insert({varName, keyPair});
     boolVars.push_back(false);
 }
@@ -435,7 +428,7 @@ bool Interpreter::isVariableName(string identifier){
     return variableKey.find(identifier) != variableKey.end();
 }
 
-string charToDatatype(char datatype){
+string Interpreter::charToDatatype(char datatype){
     switch (datatype){
         case 'i':
             return "int";
@@ -443,41 +436,65 @@ string charToDatatype(char datatype){
             return "string";
         case 'b':
             return "bool";
+        default:
+            cout << "++C ERROR: Internal error; \"charToDatatype()\" expected datatype, received: \"" << datatype << "\"\n";
+            exit(1);
     }
 }
 
-void Interpreter::additionHandler(){
-    string val1 = operands.top();
-    operands.pop();
-    string val2 = operands.top();
-    operands.pop();
-    string sum = to_string(stoi(val1) + stoi(val2));
-    operands.push(sum);
+string Interpreter::formatString(string unformatted){
+    for (int cursor = 0; cursor < unformatted.length() - 1; cursor++){
+        string substring = unformatted.substr(cursor, 2);
+        if (substring == "\\n"){
+            unformatted.replace(cursor, 2, "\n");
+        }
+        else if (substring == "\\t"){
+            unformatted.replace(cursor, 2, "\t");
+        }
+    }
+    return unformatted;
 }
 
-void Interpreter::subtractionHandler(){
+void Interpreter::arithmeticHandler(string identifier){
+    //Get operands from stack
     string val1 = operands.top();
     operands.pop();
     string val2 = operands.top();
     operands.pop();
-    string difference = to_string(stoi(val1) - stoi(val2));
-    operands.push(difference);
+    //Find the variable values of val1 & val2 if they are variables
+    int num1, num2;
+    if (isVariableName(val1)){
+        num1 = getInt(val1);
+    }
+    else{
+        num1 = stoi(val1);
+    }
+    if (isVariableName(val2)){
+        num2 = getInt(val2);
+    }
+    else{
+        num2 = stoi(val2);
+    }
+    //Perform the correct operation for the operator
+    switch (identifier[0]){
+        case '+':
+            operands.push(to_string(num1 + num2));
+            break;
+        case '-':
+            operands.push(to_string(num1 - num2));
+            break;
+        case '*':
+            operands.push(to_string(num1 * num2));
+            break;
+        case '/':
+            operands.push(to_string(num1 / num2));
+            break;
+    }
 }
 
-void Interpreter::multiplicationHandler(){
-    string val1 = operands.top();
-    operands.pop();
-    string val2 = operands.top();
-    operands.pop();
-    string product = to_string(stoi(val1) * stoi(val2));
-    operands.push(product);
-}
-
-void Interpreter::divisionHandler(){
-    string val1 = operands.top();
-    operands.pop();
-    string val2 = operands.top();
-    operands.pop();
-    string quotient = to_string(stoi(val1) / stoi(val2)); //account for floats
-    operands.push(quotient);
+void Interpreter::semicolonHandler(){
+    //Clear stack
+    while (!operands.empty()){
+        operands.pop();
+    }
 }
