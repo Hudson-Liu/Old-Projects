@@ -1,3 +1,5 @@
+//NOTE：THIS IS AN OUTDATED DEMO: USE THE NEW DEMOS FOR SUBMISSION// 
+
 // ++C: A Postfix Syntax C++ Language//
 // comments will be surrounded by two slashes //
 // NOTE: semicolons will flush all the leftover return values from the stack//
@@ -39,5 +41,19 @@ functions and classes were to be added, they would only be extensions of this id
 
 "Enter two integers: " co//test//ut <<;
 x int y int cin >> >>;
+
+//sum//
 sum int x y + =;
 endl sum "\nTheir sum is " cout << << <<;
+
+//difference//
+difference int x y - =;
+endl difference "\nTheir difference is " cout << << <<;
+
+//product//
+product int x y * =;
+endl product "\nTheir product is " cout << << <<;
+
+//quotient//
+quotient int x y / =;
+endl quotient "\nTheir quotient is " cout << << <<;
